@@ -98,7 +98,7 @@ export function CustomerFormDrawer({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg"
+           className="h-auto max-h-[90vh] min-h-0 px-4 py-6 rounded-t-lg"
           data-vaul-drawer-direction="bottom"
         >
           <DrawerHeader>
@@ -106,15 +106,6 @@ export function CustomerFormDrawer({
             <DrawerDescription>
               {customerId ? 'Update customer information' : 'Create a new customer record'}
             </DrawerDescription>
-            <DrawerClose asChild>
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                disabled={isLoading}
-              >
-                X
-              </Button>
-            </DrawerClose>
           </DrawerHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6 mt-4">
@@ -122,7 +113,7 @@ export function CustomerFormDrawer({
               <Label htmlFor="name">Customer Name</Label>
               <Input
                 id="name"
-                placeholder="e.g., Dr Arsalan"
+                placeholder="e.g., Huzaifa Ali"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isLoading}

@@ -28,9 +28,9 @@ const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/menu', label: 'Food Menu', icon: UtensilsCrossed },
-  { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
-  { href: '/dashboard/purchases', label: 'Purchases', icon: ShoppingCart },
-  { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
+  // { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
+  // { href: '/dashboard/purchases', label: 'Purchases', icon: ShoppingCart },
+  // { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -68,7 +68,9 @@ export function Sidebar({
           {!collapsed && (
             <div className="flex items-center gap-2 p-2">
               <img src="/logo.png" alt="Logo" className="h-8 w-8 dark:bg-white rounded-full" />
-              <span className="font-bold text-lg px-2">Desi Eatry</span>
+              {mobileOpen && (
+                <span className="font-bold text-lg px-2">Desi Eatry</span>
+              )}
             </div>
           )}
 

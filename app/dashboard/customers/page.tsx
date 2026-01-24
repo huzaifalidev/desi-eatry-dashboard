@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { mockCustomers } from '@/lib/mock-data'
 import { CustomerFormDrawer } from '@/components/customer-form-drawer'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState(mockCustomers)
@@ -34,7 +35,29 @@ export default function CustomersPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Summary Cards */}
+      {/* Breadcrumb */}
+      <div className="flex flex-col justify-between gap-1">
+        <h1 className="text-3xl font-bold tracking-tight text-pretty">
+          Customers
+        </h1>
+        <div className="text-muted-foreground ">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                <BreadcrumbSeparator />
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="">
+                  Customers
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        <p className="text-muted-foreground">Manage Customers.</p>
+      </div>
+      {/*  Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
@@ -86,6 +109,7 @@ export default function CustomersPage() {
                 setOpenDrawer(true)
               }}
             >
+              <Plus className="h-4 w-4" />
               Add Customer
             </Button>
           </div>
