@@ -2,11 +2,12 @@ export interface Customer {
   id: string
   name: string
   phone: string
+  address?: string
   totalBilled: number
   totalPaid: number
   balance: number
-  lastBillDate?: string
 }
+
 
 export interface MenuItem {
   id: string

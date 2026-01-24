@@ -1,3 +1,4 @@
+// components/customers-page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -22,11 +23,26 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbLink, BreadcrumbS
 export default function CustomersPage() {
   const [customers, setCustomers] = useState(mockCustomers)
   const [openDrawer, setOpenDrawer] = useState(false)
-  const [editCustomerId, setEditCustomerId] = useState<string | null>(null)
+  const [editCustomer, setEditCustomer] = useState<null | typeof mockCustomers[0]>(null)
   // Calculate summary cards
   const totalCustomers = customers.length
   const totalOutstanding = customers.reduce((sum, c) => sum + c.balance, 0)
   const totalReceived = customers.reduce((sum, c) => sum + c.totalPaid, 0)
+const handleSaveCustomer = (customer: any) => {
+  setCustomers((prev) => {
+    const exists = prev.find((c) => c.id === customer.id)
+
+    if (exists) {
+      // EDIT
+      return prev.map((c) =>
+        c.id === customer.id ? { ...c, ...customer } : c
+      )
+    }
+
+    // ADD
+    return [...prev, customer]
+  })
+}
 
   const handleDelete = (id: string) => {
     setCustomers(customers.filter((c) => c.id !== id))
@@ -105,7 +121,7 @@ export default function CustomersPage() {
 
             <Button
               onClick={() => {
-                setEditCustomerId(null) // add new
+                setEditCustomer(null) // add new
                 setOpenDrawer(true)
               }}
             >
@@ -150,7 +166,15 @@ export default function CustomersPage() {
                             <Eye size={16} />
                           </Button>
                         </Link>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditCustomer(customer ?? undefined) // convert null to undefined
+                            setOpenDrawer(true)
+                          }}
+                        >
+
                           <Edit size={16} />
                         </Button>
                         <Button
@@ -170,11 +194,13 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
-      <CustomerFormDrawer
-        customerId={editCustomerId ?? undefined}
-        open={openDrawer}
-        onOpenChange={setOpenDrawer}
-      />
+   <CustomerFormDrawer
+  customer={editCustomer ?? undefined}
+  open={openDrawer}
+  onOpenChange={setOpenDrawer}
+  onSave={handleSaveCustomer}
+/>
+
     </div>
   )
 }

@@ -1,6 +1,7 @@
+// components/customer-form-drawer.tsx
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,28 +13,51 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
-  DrawerClose,
 } from './ui/drawer'
 import { Spinner } from './ui/spinner'
+import { mockCustomers } from '@/lib/mock-data'
+
+interface Customer {
+  id: number
+  name: string
+  phone: string
+  address: string
+}
 
 interface CustomerFormDrawerProps {
-  customerId?: string
+  customer?: Customer
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSave: (customer: Customer) => void // callback to save new/updated customer
 }
 
 export function CustomerFormDrawer({
-  customerId,
+  customer,
   open,
   onOpenChange,
+  onSave,
 }: CustomerFormDrawerProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const drawerRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
+
+  // Initialize form when customer changes
+  useEffect(() => {
+    if (customer) {
+      setName(customer.name)
+      setPhone(customer.phone)
+      setAddress(customer.address)
+    } else {
+      setName('')
+      setPhone('')
+      setAddress('')
+    }
+  }, [customer])
 
   // Touch drag handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -52,7 +76,7 @@ export function CustomerFormDrawer({
   const handleTouchEnd = () => {
     if (!drawerRef.current) return
     if (currentTranslate.current > 100) {
-      onOpenChange(false) // <-- use prop instead of internal state
+      onOpenChange(false)
     }
     drawerRef.current.style.transform = ''
     currentTranslate.current = 0
@@ -61,18 +85,33 @@ export function CustomerFormDrawer({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!name || !phone) {
-      toast.error('Please fill in all fields')
+    if (!name || !phone || !address) {
+      toast.error('Please fill in all required fields')
       return
     }
 
     setIsLoading(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 500))
-      toast.success(customerId ? 'Customer updated' : 'Customer added')
-      setName('')
-      setPhone('')
-      onOpenChange(false) // <-- use prop
+
+      // Build customer object (use existing id if editing)
+      const customerToSave: Customer = {
+        id: customer?.id ?? Date.now().toString(),
+        name,
+        phone,
+        address,
+        totalBilled: customer?.totalBilled ?? 0,
+        totalPaid: customer?.totalPaid ?? 0,
+        balance: customer?.balance ?? 0,
+      }
+
+
+
+      onSave(customerToSave)
+
+      toast.success(customer ? `${name} updated` : `${name} added`)
+
+      onOpenChange(false)
     } finally {
       setIsLoading(false)
     }
@@ -81,11 +120,11 @@ export function CustomerFormDrawer({
   return (
     <>
       {/* Floating Add Button */}
-      {!customerId && (
+      {!customer && (
         <Button
           className="fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full shadow-lg"
           size="icon"
-          onClick={() => onOpenChange(true)} // <-- use prop
+          onClick={() => onOpenChange(true)}
         >
           <Plus className="h-5 w-5" />
         </Button>
@@ -98,13 +137,13 @@ export function CustomerFormDrawer({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-           className="h-auto max-h-[90vh] min-h-0 px-4 py-6 rounded-t-lg"
+          className="h-auto max-h-[90vh] min-h-0 px-4 py-6 rounded-t-lg"
           data-vaul-drawer-direction="bottom"
         >
           <DrawerHeader>
-            <DrawerTitle>{customerId ? 'Edit Customer' : 'Add New Customer'}</DrawerTitle>
+            <DrawerTitle>{customer ? 'Update Customer' : 'Add New Customer'}</DrawerTitle>
             <DrawerDescription>
-              {customerId ? 'Update customer information' : 'Create a new customer record'}
+              {customer ? 'Update customer information' : 'Create a new customer record'}
             </DrawerDescription>
           </DrawerHeader>
 
@@ -116,6 +155,17 @@ export function CustomerFormDrawer({
                 placeholder="e.g., Huzaifa Ali"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Customer Address</Label>
+              <Input
+                id="address"
+                placeholder="e.g., Flat 4, Building 12, Street 34, City"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
                 disabled={isLoading}
               />
             </div>
@@ -135,13 +185,13 @@ export function CustomerFormDrawer({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)} // <-- use prop
+                onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? <Spinner /> : customerId ? 'Update Customer' : 'Add Customer'}
+                {isLoading ? <><Spinner /> Saving...</> : customer ? 'Update Customer' : 'Add Customer'}
               </Button>
             </div>
           </form>
