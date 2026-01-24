@@ -1,15 +1,16 @@
+// components/bill-entry-drawer.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import {
   Select,
   SelectContent,
@@ -36,12 +37,41 @@ interface BillEntryDrawerProps {
   customerId?: string
 }
 
-export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDrawerProps) {
+export function BillEntryDrawer({
+  open,
+  onOpenChange,
+  customerId,
+}: BillEntryDrawerProps) {
   const [selectedCustomer, setSelectedCustomer] = useState(customerId || '')
   const [selectedMenu, setSelectedMenu] = useState('')
   const [selectedSize, setSelectedSize] = useState<'half' | 'full'>('full')
   const [quantity, setQuantity] = useState(1)
   const [billItems, setBillItems] = useState<any[]>([])
+
+  // Optional drag to close (mobile UX improvement)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const startY = useRef(0)
+  const currentTranslate = useRef(0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!drawerRef.current) return
+    const deltaY = e.touches[0].clientY - startY.current
+    if (deltaY > 0) {
+      drawerRef.current.style.transform = `translateY(${deltaY}px)`
+      currentTranslate.current = deltaY
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (!drawerRef.current) return
+    if (currentTranslate.current > 120) onOpenChange(false)
+    drawerRef.current.style.transform = ''
+    currentTranslate.current = 0
+  }
 
   const handleAddItem = () => {
     if (!selectedMenu || !selectedCustomer) {
@@ -64,25 +94,26 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
       total,
     }
 
-    setBillItems([...billItems, newItem])
-    toast.success('Item added to bill')
+    setBillItems((prev) => [...prev, newItem])
+    toast.success('Item added')
     setSelectedMenu('')
     setQuantity(1)
     setSelectedSize('full')
   }
 
   const handleRemoveItem = (id: string) => {
-    setBillItems(billItems.filter((item) => item.id !== id))
+    setBillItems((prev) => prev.filter((item) => item.id !== id))
     toast.success('Item removed')
   }
 
   const handleSaveBill = () => {
     if (!selectedCustomer || billItems.length === 0) {
-      toast.error('Please add items to the bill')
+      toast.error('Please add items')
       return
     }
 
     toast.success('Bill saved successfully')
+
     setBillItems([])
     setSelectedCustomer('')
     onOpenChange(false)
@@ -91,19 +122,26 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
   const totalAmount = billItems.reduce((sum, item) => sum + item.total, 0)
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Add New Bill</SheetTitle>
-          <SheetDescription>Create a new bill for a customer</SheetDescription>
-        </SheetHeader>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent
+        ref={drawerRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg p-2"
+        data-vaul-drawer-direction="bottom"
+      >
+        <DrawerHeader>
+          <DrawerTitle>Add New Bill</DrawerTitle>
+          <DrawerDescription>Create a new bill for a customer</DrawerDescription>
+        </DrawerHeader>
 
-        <div className="space-y-6 py-6">
-          {/* Customer Selection */}
+        <div className="space-y-6 mt-4 p-2">
+          {/* Customer */}
           <div className="space-y-2">
-            <Label htmlFor="customer">Customer</Label>
+            <Label>Customer</Label>
             <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-              <SelectTrigger id="customer">
+              <SelectTrigger>
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
@@ -116,12 +154,12 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
             </Select>
           </div>
 
-          {/* Menu Item Selection */}
+          {/* Menu Row */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="menu">Menu Item</Label>
+              <Label>Menu Item</Label>
               <Select value={selectedMenu} onValueChange={setSelectedMenu}>
-                <SelectTrigger id="menu">
+                <SelectTrigger>
                   <SelectValue placeholder="Select item" />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,9 +173,12 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="size">Size</Label>
-              <Select value={selectedSize} onValueChange={(v) => setSelectedSize(v as 'half' | 'full')}>
-                <SelectTrigger id="size">
+              <Label>Size</Label>
+              <Select
+                value={selectedSize}
+                onValueChange={(v) => setSelectedSize(v as 'half' | 'full')}
+              >
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -148,13 +189,14 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="qty">Quantity</Label>
+              <Label>Quantity</Label>
               <Input
-                id="qty"
                 type="number"
                 min="1"
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                }
               />
             </div>
 
@@ -167,7 +209,7 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
             </div>
           </div>
 
-          {/* Bill Items Table */}
+          {/* Items Table */}
           {billItems.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <Table>
@@ -188,7 +230,9 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
                       <TableCell className="capitalize">{item.size}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
-                      <TableCell className="text-right">Rs {item.total.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        Rs {item.total.toLocaleString()}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
@@ -202,24 +246,27 @@ export function BillEntryDrawer({ open, onOpenChange, customerId }: BillEntryDra
                   ))}
                 </TableBody>
               </Table>
+
               <div className="bg-muted p-4 flex justify-between items-center">
                 <span className="font-semibold">Total Amount:</span>
-                <span className="text-lg font-bold">Rs {totalAmount.toLocaleString()}</span>
+                <span className="text-lg font-bold">
+                  Rs {totalAmount.toLocaleString()}
+                </span>
               </div>
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveBill} disabled={billItems.length === 0}>
+            <Button onClick={handleSaveBill} disabled={!billItems.length}>
               Save Bill
             </Button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }

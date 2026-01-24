@@ -122,7 +122,9 @@ export default function SingleCustomerPage() {
             <div className="text-sm">
               {customer.lastBillDate ? (
                 <>
-                  <p className="font-semibold">{customer.lastBillDate}</p>
+                  <p className="font-semibold">{customer.lastBillDate}
+{/* make it Day,Date,Month Year */}
+                  </p>
                 </>
               ) : (
                 <p className="text-muted-foreground">No payment</p>
