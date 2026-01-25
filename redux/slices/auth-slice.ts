@@ -3,6 +3,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { config } from '../../config/config';
+import { fetchMenuItems } from './menu-slice';
+import { fetchAllCustomers } from './customer-slice';
 
 interface UserState {
   user: any | null;

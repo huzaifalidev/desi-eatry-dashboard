@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner'
 import { RootState } from '@/redux/store/store'
 import { Label } from '@/components/ui/label'
+import { fetchMenuItems } from '@/redux/slices/menu-slice'
 
 export default function LoginPage() {
   const router = useRouter()

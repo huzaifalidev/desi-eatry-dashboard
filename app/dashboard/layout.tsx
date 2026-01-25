@@ -7,6 +7,9 @@ import { Navbar } from '@/components/navbar'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchAdmin, logoutUser } from '@/redux/slices/auth-slice'
 import { RootState } from '@/redux/store/store'
+import { fetchMenuItems } from '@/redux/slices/menu-slice'
+import { fetchAllCustomers } from '@/redux/slices/customer-slice'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function DashboardLayout({
   children,
@@ -23,6 +26,8 @@ export default function DashboardLayout({
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        await dispatch(fetchMenuItems())
+        await dispatch(fetchAllCustomers())
         if (!user) {
           // Fetch admin info using access token (refresh token handled automatically)
           await dispatch(fetchAdmin())
@@ -45,8 +50,8 @@ export default function DashboardLayout({
   }, [loading, user, router])
 
   // Show loader while fetching
-  if (loading || !user ) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  if (loading || !user) {
+    return <Spinner className='flex justify-center items-center h-screen' />
   }
 
   return (
