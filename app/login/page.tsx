@@ -40,8 +40,8 @@ export default function LoginPage() {
     dispatch(loginUser({ email, password }))
   }
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <Card className="w-full max-w-md bg-zinc-900">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-500">
+      <Card className="w-full max-w-md dark dark:bg-zinc-900 shadow-lg bg-zinc-900">
         <CardHeader>
           <CardTitle>Desi Eatry</CardTitle>
           <CardDescription>Billing & Inventory System</CardDescription>
