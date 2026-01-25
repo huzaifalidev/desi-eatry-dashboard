@@ -9,17 +9,27 @@ const api = axios.create({
   baseURL: config.apiUrl,
 });
 
+const isClient = () => typeof window !== 'undefined';
+
 /* =======================
    Token helpers
 ======================= */
-const getAccessToken = () => localStorage.getItem('accesstoken');
-const getRefreshToken = () => localStorage.getItem('refreshtoken');
+const getAccessToken = () => {
+  if (!isClient()) return null;
+  return localStorage.getItem('accesstoken');
+};
+
+const getRefreshToken = () => {
+  if (!isClient()) return null;
+  return localStorage.getItem('refreshtoken');
+};
 
 const setAccessToken = (token: string) => {
-  localStorage.setItem('accesstoken', token);
+  if (isClient()) localStorage.setItem('accesstoken', token);
 };
 
 const logout = () => {
+  if (!isClient()) return;
   localStorage.removeItem('accesstoken');
   localStorage.removeItem('refreshtoken');
   window.location.href = '/login';
@@ -35,12 +45,9 @@ let failedQueue: {
 }[] = [];
 
 const processQueue = (error: AxiosError | null, token: string | null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else if (token) {
-      prom.resolve(token);
-    }
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else if (token) prom.resolve(token);
   });
   failedQueue = [];
 };
@@ -49,9 +56,11 @@ const processQueue = (error: AxiosError | null, token: string | null) => {
    Request interceptor
 ======================= */
 api.interceptors.request.use((req) => {
-  const accessToken = localStorage.getItem('accesstoken');
-  if (accessToken) {
-    req.headers.Authorization = `Bearer ${accessToken}`;
+  if (isClient()) {
+    const accessToken = getAccessToken();
+    if (accessToken) {
+      req.headers.Authorization = `Bearer ${accessToken}`;
+    }
   }
   return req;
 });
@@ -65,13 +74,13 @@ api.interceptors.response.use(
     const originalRequest = error.config as RetryAxiosRequestConfig;
 
     if (
+      isClient() &&
       error.response?.status === 401 &&
       error.response?.data?.msg === 'Access token expired' &&
       !originalRequest._retry
     ) {
       originalRequest._retry = true;
 
-      // If refresh already in progress, queue the request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({

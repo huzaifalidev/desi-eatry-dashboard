@@ -1,4 +1,5 @@
 // src/features/auth/authSlice.ts
+
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { config } from '../../config/config';
@@ -9,6 +10,9 @@ interface UserState {
   error: string | null;
   sidebarCollapsed: boolean;
 }
+
+// ---------------- Helpers ----------------
+const isClient = () => typeof window !== 'undefined';
 
 // ---------------- Login User ----------------
 export const loginUser = createAsyncThunk(
@@ -27,7 +31,10 @@ export const loginUser = createAsyncThunk(
 export const refreshAccessToken = createAsyncThunk(
   'auth/refreshAccessToken',
   async (_, thunkAPI) => {
+    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser');
+
     const refreshToken = localStorage.getItem('refreshtoken');
+
     if (!refreshToken) {
       thunkAPI.dispatch(logoutUser());
       return thunkAPI.rejectWithValue('No refresh token');
@@ -49,44 +56,46 @@ export const refreshAccessToken = createAsyncThunk(
 export const fetchAdmin = createAsyncThunk(
   'auth/fetchAdmin',
   async (_, thunkAPI) => {
-    const accessToken = localStorage.getItem('accesstoken')
-    const refreshToken = localStorage.getItem('refreshtoken')
+    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser');
+
+    const accessToken = localStorage.getItem('accesstoken');
+    const refreshToken = localStorage.getItem('refreshtoken');
 
     if (!accessToken || !refreshToken)
-      return thunkAPI.rejectWithValue('No access/refresh token')
+      return thunkAPI.rejectWithValue('No access/refresh token');
 
     try {
       const res = await axios.post(
         `${config.apiUrl}/admin/get-admin`,
         {},
         { headers: { Authorization: `Bearer ${accessToken}` } }
-      )
-      return res.data.user
+      );
+      return res.data.user;
     } catch (err: any) {
       if (
         err.response?.status === 401 &&
         err.response?.data?.msg === 'Access token expired'
       ) {
-        const newAccessToken = await thunkAPI.dispatch(refreshAccessToken()).unwrap()
+        const newAccessToken = await thunkAPI.dispatch(refreshAccessToken()).unwrap();
 
         const retryRes = await axios.post(
           `${config.apiUrl}/admin/get-admin`,
           {},
           { headers: { Authorization: `Bearer ${newAccessToken}` } }
-        )
+        );
 
-        return retryRes.data
+        return retryRes.data;
       }
 
-      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Failed to fetch admin')
+      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Failed to fetch admin');
     }
   }
-)
-
-
+);
 
 // ---------------- Logout User ----------------
-export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, thunkAPI) => {
+export const logoutUser = createAsyncThunk('auth/logoutUser', async () => {
+  if (!isClient()) return;
+
   const accessToken = localStorage.getItem('accesstoken');
 
   if (accessToken) {
@@ -105,30 +114,33 @@ export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, thunkAPI
   localStorage.removeItem('refreshtoken');
 });
 
+// ---------------- Initial State ----------------
 const initialState: UserState = {
   user: null,
   loading: false,
   error: null,
-  sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' ? true : false,
+  sidebarCollapsed: false, // hydrate client-side
 };
 
+// ---------------- Slice ----------------
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
     toggleSidebarCollapsed(state) {
-      localStorage.setItem('sidebarCollapsed', (!state.sidebarCollapsed).toString())
-      state.sidebarCollapsed = !state.sidebarCollapsed
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+      if (isClient()) {
+        localStorage.setItem('sidebarCollapsed', state.sidebarCollapsed.toString());
+      }
     },
 
     setSidebarCollapsed(state, action: PayloadAction<boolean>) {
-      state.sidebarCollapsed = action.payload
+      state.sidebarCollapsed = action.payload;
     },
   },
   extraReducers: (builder) => {
-
-    // Login
     builder
+      // Login
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -136,49 +148,47 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
-        localStorage.setItem('accesstoken', action.payload.user.accessToken);
-        localStorage.setItem('refreshtoken', action.payload.user.refreshToken);
+
+        if (isClient()) {
+          localStorage.setItem('accesstoken', action.payload.user.accessToken);
+          localStorage.setItem('refreshtoken', action.payload.user.refreshToken);
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      });
+      })
 
-    // Fetch Admin
-    builder
+      // Fetch Admin
       .addCase(fetchAdmin.pending, (state) => {
-        state.loading = true
-        state.error = null
+        state.loading = true;
+        state.error = null;
       })
       .addCase(fetchAdmin.fulfilled, (state, action) => {
-        state.loading = false
-        state.user = action.payload // entire response { admin, msg }
+        state.loading = false;
+        state.user = action.payload;
       })
       .addCase(fetchAdmin.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-        state.user = null
+        state.loading = false;
+        state.error = action.payload as string;
+        state.user = null;
       })
 
-
-    // Refresh Access Token
-    builder
-      .addCase(refreshAccessToken.fulfilled, (state, action) => {
-        // No state update needed, token already stored in localStorage
-      })
+      // Refresh
       .addCase(refreshAccessToken.rejected, (state, action) => {
         state.user = null;
         state.error = action.payload as string;
-      });
+      })
 
-    // Logout
-    builder.addCase(logoutUser.fulfilled, (state) => {
-      state.user = null;
-      state.loading = false;
-      state.error = null;
-      state.sidebarCollapsed = false
-    });
+      // Logout
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.loading = false;
+        state.error = null;
+        state.sidebarCollapsed = false;
+      });
   },
 });
-export const { toggleSidebarCollapsed, setSidebarCollapsed } = authSlice.actions
+
+export const { toggleSidebarCollapsed, setSidebarCollapsed } = authSlice.actions;
 export default authSlice.reducer;
