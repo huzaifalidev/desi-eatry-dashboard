@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
 import { Sidebar } from '@/components/sidebar'
 import { Navbar } from '@/components/navbar'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchAdmin, logoutUser } from '@/redux/slices/auth-slice'
+import { RootState } from '@/redux/store/store'
 
 export default function DashboardLayout({
   children,
@@ -12,32 +14,51 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const dispatch = useDispatch<any>()
+  const { user, loading } = useSelector((state: RootState) => state.auth)
+  console.log('Dashboard Layout User:', user);
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Check authentication on mount
   useEffect(() => {
-    if (!isAuthenticated) {
+    const checkAuth = async () => {
+      try {
+        if (!user) {
+          // Fetch admin info using access token (refresh token handled automatically)
+          await dispatch(fetchAdmin())
+        }
+      } catch (err) {
+        // If fetch fails, log out and redirect to login
+        await dispatch(logoutUser())
+        router.push('/login')
+      }
+    }
+
+    checkAuth()
+  }, [dispatch, router, user])
+
+  // Redirect if user is null after loading
+  useEffect(() => {
+    if (!loading && !user) {
       router.push('/login')
     }
-  }, [isAuthenticated, router])
+  }, [loading, user, router])
 
-  if (!isAuthenticated) return null
+  // Show loader while fetching
+  if (loading || !user ) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <Sidebar
-        mobileOpen={sidebarOpen}
-        setMobileOpen={setSidebarOpen}
-      />
+      <Sidebar mobileOpen={sidebarOpen} setMobileOpen={setSidebarOpen} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   )

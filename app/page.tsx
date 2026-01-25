@@ -2,12 +2,10 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
 
 export default function Page() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
-
+  const isAuthenticated = false // Replace with actual authentication logic
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/dashboard')

@@ -2,7 +2,6 @@
 
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, LogOut, Menu } from 'lucide-react'
 import {
@@ -14,14 +13,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { DropdownMenuLabel } from '@radix-ui/react-dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { useDispatch, useSelector } from 'react-redux'
+import { logoutUser } from '@/redux/slices/auth-slice'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const { logout } = useAuth()
-
-  const user = { firstName: 'John', lastName: 'Doe', email: 'admin@demo.com' }
-
+  const dispatch = useDispatch()
+  const logout = () => {
+    dispatch(logoutUser()) // Replace with actual logout action
+  }
+  const user = useSelector((state: RootState) => state.auth.user);
   return (
     <nav className="dark:bg-zinc-900 bg-[#fafafa] border-b border-border h-16 px-4 sm:px-6 sticky top-0 z-10">
       <div className="w-full h-full flex items-center justify-between">
@@ -63,8 +65,8 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/diverse-user-avatars.png" alt="User" />
                   <AvatarFallback>
-                    {user.firstName[0]}
-                    {user.lastName[0]}
+                    {user?.firstName[0]}
+                    {user?.lastName[0]}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -103,7 +105,6 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
               <DropdownMenuItem
                 onClick={() => {
-                  localStorage.clear()
                   logout()
                   router.push('/login')
                 }}
