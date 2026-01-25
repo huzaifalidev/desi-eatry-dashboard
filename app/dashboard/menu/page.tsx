@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { mockMenuItems } from '@/lib/mock-data'
 import { MenuItemFormDrawer } from '@/components/menu-item-form-drawer'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 
 export default function FoodMenuPage() {
   const [openDrawer, setOpenDrawer] = useState(false)
@@ -28,6 +29,27 @@ export default function FoodMenuPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <div className="flex flex-col justify-between gap-1">
+        <h1 className="text-3xl font-bold tracking-tight text-pretty">
+          Menu
+        </h1>
+        <div className="text-muted-foreground ">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                <BreadcrumbSeparator />
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="menu">
+                  Menu
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        <p className="text-muted-foreground">Manage Customers.</p>
+      </div>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

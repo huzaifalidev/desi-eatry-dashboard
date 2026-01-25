@@ -1,15 +1,11 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
   UtensilsCrossed,
-  Package,
-  ShoppingCart,
-  BarChart3,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -23,14 +19,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { toggleSidebarCollapsed } from '@/redux/slices/auth-slice'
+import { useDispatch, useSelector } from 'react-redux'
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/menu', label: 'Food Menu', icon: UtensilsCrossed },
-  // { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
-  // { href: '/dashboard/purchases', label: 'Purchases', icon: ShoppingCart },
-  // { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -41,7 +36,8 @@ export function Sidebar({
   mobileOpen: boolean
   setMobileOpen: (value: boolean) => void
 }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const dispatch = useDispatch()
+  const sidebarCollapsed = useSelector((state: any) => state.auth.sidebarCollapsed)
   const pathname = usePathname()
 
   return (
@@ -57,7 +53,7 @@ export function Sidebar({
       <aside
         className={cn(
           'fixed z-50 lg:static inset-y-0 left-0 bg-[#fafafa] dark:bg-zinc-900 border-r transition-all duration-300 flex flex-col',
-          collapsed ? 'w-20' : 'w-64',
+          sidebarCollapsed ? 'w-20' : 'w-64',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0'
         )}
@@ -65,22 +61,20 @@ export function Sidebar({
         {/* Logo + collapse */}
         <div className="flex items-center justify-between h-16 border-b px-2">
           {/* Logo for desktop or expanded */}
-          {!collapsed && (
+          {!sidebarCollapsed && (
             <div className="flex items-center gap-2 p-2">
               <img src="/logo.png" alt="Logo" className="h-8 w-8 dark:bg-white rounded-full" />
-              {mobileOpen && (
-                <span className="font-bold text-lg px-2">Desi Eatry</span>
-              )}
+              <span className="font-bold text-lg px-2">Desi Eatry</span>
             </div>
           )}
 
           {/* Centered logo when collapsed */}
-          {collapsed && (
+          {sidebarCollapsed && (
             <div className="flex-1 flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCollapsed(!collapsed)}
+                onClick={() => dispatch(toggleSidebarCollapsed())}
                 className="h-8 w-8 p-0 flex items-center justify-center relative group"
               >
                 {/* Logo */}
@@ -98,11 +92,11 @@ export function Sidebar({
           {/* Controls */}
           <div className="flex items-center gap-2">
             {/* Desktop collapse toggle */}
-            {!collapsed && (
+            {!sidebarCollapsed && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setCollapsed(!collapsed)}
+                onClick={() => dispatch(toggleSidebarCollapsed())}
                 className="hidden lg:flex"
               >
                 <ChevronLeft />
@@ -138,12 +132,12 @@ export function Sidebar({
                 >
                   <Link href={item.href} className="flex items-center w-full gap-3">
                     <item.icon size={20} />
-                    {!collapsed && <span>{item.label}</span>}
+                    {!sidebarCollapsed && <span>{item.label}</span>}
                   </Link>
                 </Button>
               )
 
-              return collapsed ? (
+              return sidebarCollapsed ? (
                 <Tooltip key={item.href}>
                   <TooltipTrigger asChild>{button}</TooltipTrigger>
                   <TooltipContent side="right">{item.label}</TooltipContent>

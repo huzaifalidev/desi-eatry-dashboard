@@ -1,34 +1,29 @@
 'use client'
 
-import React from "react"
-
-import { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from './ui/drawer'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Spinner } from './ui/spinner'
 
 interface MenuItemFormDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   itemId?: string
+  onSave?: (item: {
+    id?: string
+    name: string
+    half: string
+    full: string
+    unit: string
+    status: string
+  }) => void
 }
 
-export function MenuItemFormDrawer({ open, onOpenChange, itemId }: MenuItemFormDrawerProps) {
+export function MenuItemFormDrawer({ open, onOpenChange, itemId, onSave }: MenuItemFormDrawerProps) {
   const [name, setName] = useState('')
   const [half, setHalf] = useState('')
   const [full, setFull] = useState('')
@@ -36,9 +31,46 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId }: MenuItemFormD
   const [status, setStatus] = useState('active')
   const [isLoading, setIsLoading] = useState(false)
 
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const startY = useRef(0)
+  const currentTranslate = useRef(0)
+
+  // Initialize form if editing
+  useEffect(() => {
+    if (!itemId) {
+      setName('')
+      setHalf('')
+      setFull('')
+      setUnit('plate')
+      setStatus('active')
+    }
+  }, [itemId])
+
+  // Touch drag handlers for dismiss
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!drawerRef.current) return
+    const deltaY = e.touches[0].clientY - startY.current
+    if (deltaY > 0) {
+      drawerRef.current.style.transform = `translateY(${deltaY}px)`
+      currentTranslate.current = deltaY
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (!drawerRef.current) return
+    if (currentTranslate.current > 100) {
+      onOpenChange(false)
+    }
+    drawerRef.current.style.transform = ''
+    currentTranslate.current = 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!name || !full) {
       toast.error('Please fill in required fields')
       return
@@ -46,31 +78,51 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId }: MenuItemFormD
 
     setIsLoading(true)
     try {
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500))
+
+      if (onSave) {
+        onSave({
+          id: itemId,
+          name,
+          half,
+          full,
+          unit,
+          status,
+        })
+      }
+
       toast.success(itemId ? 'Menu item updated' : 'Menu item added')
+      onOpenChange(false)
+
+      // Reset form
       setName('')
       setHalf('')
       setFull('')
       setUnit('plate')
       setStatus('active')
-      onOpenChange(false)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{itemId ? 'Edit Menu Item' : 'Add New Menu Item'}</SheetTitle>
-          <SheetDescription>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent
+        ref={drawerRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="h-auto max-h-[90vh] min-h-0 px-4 py-6 rounded-t-lg"
+        data-vaul-drawer-direction="bottom"
+      >
+        <DrawerHeader>
+          <DrawerTitle>{itemId ? 'Edit Menu Item' : 'Add New Menu Item'}</DrawerTitle>
+          <DrawerDescription>
             {itemId ? 'Update menu item details' : 'Create a new menu item'}
-          </SheetDescription>
-        </SheetHeader>
+          </DrawerDescription>
+        </DrawerHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 py-6">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Item Name</Label>
             <Input
@@ -140,7 +192,7 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId }: MenuItemFormD
             </Select>
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end mt-4">
             <Button
               type="button"
               variant="outline"
@@ -150,11 +202,11 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId }: MenuItemFormD
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : itemId ? 'Update Item' : 'Add Item'}
+              {isLoading ? <><Spinner /> Saving...</> : itemId ? 'Update Item' : 'Add Item'}
             </Button>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }

@@ -1,5 +1,5 @@
 // src/features/auth/authSlice.ts
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { config } from '../../config/config';
 
@@ -7,6 +7,7 @@ interface UserState {
   user: any | null;
   loading: boolean;
   error: string | null;
+  sidebarCollapsed: boolean;
 }
 
 // ---------------- Login User ----------------
@@ -108,13 +109,24 @@ const initialState: UserState = {
   user: null,
   loading: false,
   error: null,
+  sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' ? true : false,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {},
+  reducers: {
+    toggleSidebarCollapsed(state) {
+      localStorage.setItem('sidebarCollapsed', (!state.sidebarCollapsed).toString())
+      state.sidebarCollapsed = !state.sidebarCollapsed
+    },
+
+    setSidebarCollapsed(state, action: PayloadAction<boolean>) {
+      state.sidebarCollapsed = action.payload
+    },
+  },
   extraReducers: (builder) => {
+
     // Login
     builder
       .addCase(loginUser.pending, (state) => {
@@ -164,8 +176,9 @@ const authSlice = createSlice({
       state.user = null;
       state.loading = false;
       state.error = null;
+      state.sidebarCollapsed = false
     });
   },
 });
-
+export const { toggleSidebarCollapsed, setSidebarCollapsed } = authSlice.actions
 export default authSlice.reducer;

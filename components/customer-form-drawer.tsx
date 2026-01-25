@@ -85,7 +85,7 @@ export function CustomerFormDrawer({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!name || !phone || !address) {
+    if (!name || !phone ) {
       toast.error('Please fill in all required fields')
       return
     }
