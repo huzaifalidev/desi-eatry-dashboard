@@ -1,35 +1,19 @@
-export const API_BASE = '/api/menu' // Adjust if your API route is different
-
+import api from '@/lib/axios';
+export const API_BASE = '/menu';
 export async function fetchMenus() {
-  const res = await fetch(API_BASE)
-  if (!res.ok) throw new Error('Failed to fetch menus')
-  return res.json()
+  const res = await api.get(API_BASE,{});
+  // pass 
+  return res.data;
 }
-
 export async function createMenu(data: any) {
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('Failed to create menu')
-  return res.json()
+  const res = await api.post(API_BASE, data);
+  return res.data;
 }
-
 export async function updateMenu(id: string, data: any) {
-  const res = await fetch(`${API_BASE}/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('Failed to update menu')
-  return res.json()
+  const res = await api.put(`${API_BASE}/${id}`, data);
+  return res.data;
 }
-
 export async function deleteMenu(id: string) {
-  const res = await fetch(`${API_BASE}/${id}`, {
-    method: 'DELETE',
-  })
-  if (!res.ok) throw new Error('Failed to delete menu')
-  return res.json()
+  const res = await api.delete(`${API_BASE}/${id}`);
+  return res.data;
 }

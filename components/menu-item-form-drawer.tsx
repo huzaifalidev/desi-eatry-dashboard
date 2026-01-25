@@ -12,8 +12,15 @@ import { Spinner } from './ui/spinner'
 interface MenuItemFormDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  itemId?: string
-  onSave?: (item: {
+  item?: {
+    _id: string
+    name: string
+    half: string | number
+    full: string | number
+    unit: string
+    status: string
+  } | null
+  onSubmit: (menuData: {
     id?: string
     name: string
     half: string
@@ -23,7 +30,7 @@ interface MenuItemFormDrawerProps {
   }) => void
 }
 
-export function MenuItemFormDrawer({ open, onOpenChange, itemId, onSave }: MenuItemFormDrawerProps) {
+export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuItemFormDrawerProps) {
   const [name, setName] = useState('')
   const [half, setHalf] = useState('')
   const [full, setFull] = useState('')
@@ -35,18 +42,24 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId, onSave }: MenuI
   const startY = useRef(0)
   const currentTranslate = useRef(0)
 
-  // Initialize form if editing
+  // Initialize form when editing
   useEffect(() => {
-    if (!itemId) {
+    if (item) {
+      setName(item.name || '')
+      setHalf(String(item.half || ''))
+      setFull(String(item.full || ''))
+      setUnit(item.unit || 'plate')
+      setStatus(item.status || 'active')
+    } else {
       setName('')
       setHalf('')
       setFull('')
       setUnit('plate')
       setStatus('active')
     }
-  }, [itemId])
+  }, [item, open])
 
-  // Touch drag handlers for dismiss
+  // Touch drag handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     startY.current = e.touches[0].clientY
   }
@@ -78,28 +91,19 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId, onSave }: MenuI
 
     setIsLoading(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, 300)) // simulate delay
 
-      if (onSave) {
-        onSave({
-          id: itemId,
-          name,
-          half,
-          full,
-          unit,
-          status,
-        })
-      }
+      onSubmit({
+        id: item?._id,
+        name,
+        half,
+        full,
+        unit,
+        status,
+      })
 
-      toast.success(itemId ? 'Menu item updated' : 'Menu item added')
+      toast.success(item ? 'Menu item updated' : 'Menu item added')
       onOpenChange(false)
-
-      // Reset form
-      setName('')
-      setHalf('')
-      setFull('')
-      setUnit('plate')
-      setStatus('active')
     } finally {
       setIsLoading(false)
     }
@@ -116,9 +120,9 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId, onSave }: MenuI
         data-vaul-drawer-direction="bottom"
       >
         <DrawerHeader>
-          <DrawerTitle>{itemId ? 'Edit Menu Item' : 'Add New Menu Item'}</DrawerTitle>
+          <DrawerTitle>{item ? 'Edit Menu Item' : 'Add New Menu Item'}</DrawerTitle>
           <DrawerDescription>
-            {itemId ? 'Update menu item details' : 'Create a new menu item'}
+            {item ? 'Update menu item details' : 'Create a new menu item'}
           </DrawerDescription>
         </DrawerHeader>
 
@@ -202,7 +206,7 @@ export function MenuItemFormDrawer({ open, onOpenChange, itemId, onSave }: MenuI
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? <><Spinner /> Saving...</> : itemId ? 'Update Item' : 'Add Item'}
+              {isLoading ? <><Spinner /> Saving...</> : item ? 'Update Item' : 'Add Item'}
             </Button>
           </div>
         </form>
