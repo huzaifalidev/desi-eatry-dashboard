@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { mockCustomers, mockBills, mockPayments, mockInventory, mockPurchases } from '@/lib/mock-data'
 import { BillEntryDrawer } from '@/components/bill-entry-drawer'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 
 export default function DashboardPage() {
   const [openDrawer, setOpenDrawer] = useState(false)
@@ -33,6 +34,22 @@ export default function DashboardPage() {
   return (
     <div className="p-6 space-y-6">
       {/* KPI Cards */}
+      <div className="flex flex-col justify-between gap-1">
+        <h1 className="text-3xl font-bold tracking-tight text-pretty">
+          Dashboard
+        </h1>
+        <div className="text-muted-foreground ">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                <BreadcrumbSeparator />
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        <p className="text-muted-foreground">Here&apos;s a summary of your business.</p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
