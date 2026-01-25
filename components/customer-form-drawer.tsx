@@ -139,9 +139,16 @@ export function CustomerFormDrawer({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="h-auto max-h-[90vh] min-h-0 px-4 py-6 rounded-t-lg"
+          className="
+    px-4 py-6 rounded-t-lg
+    md:max-h-none md:overflow-visible
+    max-h-[90svh] overflow-y-auto
+    pb-[env(safe-area-inset-bottom)]
+  "
           data-vaul-drawer-direction="bottom"
         >
+
+
           <DrawerHeader>
             <DrawerTitle>{customer ? 'Update Customer' : 'Add New Customer'}</DrawerTitle>
             <DrawerDescription>

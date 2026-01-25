@@ -31,7 +31,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       console.log('Login Page User:', user);
-      router.push('/dashboard')}
+      router.push('/dashboard')
+    }
 
   }, [user, router])
 
@@ -40,8 +41,14 @@ export default function LoginPage() {
     dispatch(loginUser({ email, password }))
   }
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-500">
-      <Card className="w-full max-w-md dark dark:bg-zinc-900 shadow-lg bg-zinc-900">
+    <div className="flex items-center justify-center bg-zinc-700 min-h-screen sm:min-h-screen  max-sm:min-h-[100svh]">
+      <Card className="
+  w-full
+  max-w-md
+  shadow-lg
+  bg-zinc-900
+  max-sm:mx-4
+">
         <CardHeader>
           <CardTitle>Desi Eatry</CardTitle>
           <CardDescription>Billing & Inventory System</CardDescription>
