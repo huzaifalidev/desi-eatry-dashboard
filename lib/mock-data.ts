@@ -1,11 +1,13 @@
 export interface Customer {
-  id: string
-  name: string
+  _id: string
+  firstName: string
+  lastName: string
   phone: string
   address?: string
   totalBilled: number
   totalPaid: number
   balance: number
+  lastBillDate: string
 }
 
 
@@ -64,8 +66,9 @@ export interface Purchase {
 // Mock Customers Data
 export const mockCustomers: Customer[] = [
   {
-    id: '1',
-    name: 'Dr Arsalan',
+    _id: '1',
+    firstName: 'Sara',
+    lastName: 'Ahmed',
     phone: '+92 300 1234567',
     totalBilled: 15000,
     totalPaid: 12000,
@@ -73,8 +76,9 @@ export const mockCustomers: Customer[] = [
     lastBillDate: '2024-01-20',
   },
   {
-    id: '2',
-    name: 'Ahmed Khan',
+    _id: '2',
+    firstName: 'Ahmed',
+    lastName: 'Khan',
     phone: '+92 321 2345678',
     totalBilled: 8500,
     totalPaid: 8500,
@@ -82,8 +86,9 @@ export const mockCustomers: Customer[] = [
     lastBillDate: '2024-01-18',
   },
   {
-    id: '3',
-    name: 'Fatima Ali',
+    _id: '3',
+    firstName: 'Fatima',
+    lastName: 'Ali',
     phone: '+92 333 3456789',
     totalBilled: 22000,
     totalPaid: 15000,
@@ -91,8 +96,9 @@ export const mockCustomers: Customer[] = [
     lastBillDate: '2024-01-22',
   },
   {
-    id: '4',
-    name: 'Hassan Ali',
+    _id: '4',
+    firstName: 'Hassan',
+    lastName: 'Sheikh',
     phone: '+92 345 4567890',
     totalBilled: 5500,
     totalPaid: 5500,
@@ -100,8 +106,9 @@ export const mockCustomers: Customer[] = [
     lastBillDate: '2024-01-19',
   },
   {
-    id: '5',
-    name: 'Zainab Malik',
+    _id: '5',
+    firstName: 'Ayesha',
+    lastName: 'Zafar',
     phone: '+92 300 5678901',
     totalBilled: 18000,
     totalPaid: 10000,
@@ -168,8 +175,8 @@ export const mockPurchases: Purchase[] = [
   { id: '3', date: '2024-01-20', item: 'Onions', quantity: 20, unit: 'kg', cost: 800 },
 ]
 
-export const getCustomerById = (id: string) => {
-  return mockCustomers.find((c) => c.id === id)
+export const getCustomerById = (_id: string) => {
+  return mockCustomers.find((c) => c._id === _id)
 }
 
 export const getCustomerBills = (customerId: string) => {

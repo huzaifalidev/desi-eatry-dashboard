@@ -109,11 +109,13 @@ export function CustomerFormDrawer({
         totalPaid: customer?.totalPaid ?? 0,
         balance: customer?.balance ?? 0,
       }
-
-
-
       onSave(customerToSave)
       onOpenChange(false)
+      //setForm fields cleared in useEffect when drawer closes
+      setFirstName('')
+      setLastName('')
+      setPhone('')
+      setAddress('')
     } finally {
       setIsLoading(false)
     }

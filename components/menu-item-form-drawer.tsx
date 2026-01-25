@@ -116,8 +116,12 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="h-auto max-h-[90vh] min-h-0 px-4 py-6 rounded-t-lg"
-        data-vaul-drawer-direction="bottom"
+        className="
+  px-4 py-6 rounded-t-lg
+  max-h-[90svh] overflow-y-auto
+  md:max-h-none md:overflow-visible
+  pb-[env(safe-area-inset-bottom)] md:pb-6
+"
       >
         <DrawerHeader>
           <DrawerTitle>{item ? 'Edit Menu Item' : 'Add New Menu Item'}</DrawerTitle>

@@ -29,12 +29,12 @@ export default function FoodMenuPage() {
   const [deleteItem, setDeleteItem] = useState<any | null>(null)
   const [isDeleteLoading, setIsDeleteLoading] = useState(false)
 
-  // Fetch menus
+  // ---------------- Load Menus ----------------
   const loadMenus = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
       const data = await fetchMenus()
-      setItems(data.menus)
+      setItems(data.menus ?? data)
     } catch (err: any) {
       toast.error(err.message)
     } finally {
@@ -46,7 +46,7 @@ export default function FoodMenuPage() {
     loadMenus()
   }, [])
 
-  // Create / Update
+  // ---------------- Create / Update ----------------
   const handleCreate = async (menuData: any) => {
     try {
       const res = await createMenu(menuData)
@@ -61,9 +61,7 @@ export default function FoodMenuPage() {
   const handleUpdate = async (id: string, data: any) => {
     try {
       const res = await updateMenu(id, data)
-      setItems((prev) =>
-        prev.map((item) => (item._id === id ? res.menu : item))
-      )
+      setItems((prev) => prev.map((item) => (item._id === id ? res.menu : item)))
       toast.success('Menu item updated')
       setOpenDrawer(false)
       setSelectedItem(null)
@@ -72,7 +70,7 @@ export default function FoodMenuPage() {
     }
   }
 
-  // Delete
+  // ---------------- Delete ----------------
   const confirmDelete = async () => {
     if (!deleteItem) return
     try {
@@ -88,7 +86,7 @@ export default function FoodMenuPage() {
     }
   }
 
-  // Skeleton for table rows
+  // ---------------- Skeleton ----------------
   const TableSkeleton = () => (
     <>
       {[...Array(5)].map((_, idx) => (
@@ -110,39 +108,38 @@ export default function FoodMenuPage() {
   )
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
+
       {/* Breadcrumb and Title */}
-      <div className="flex flex-col justify-between gap-1">
+      <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-pretty">Menu</h1>
-        <div className="text-muted-foreground ">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                <BreadcrumbSeparator />
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="menu">Menu</BreadcrumbLink>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-        <p className="text-muted-foreground">Manage your food menu.</p>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              <BreadcrumbSeparator />
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="">Menu</BreadcrumbLink>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage your food menu.</p>
       </div>
 
-      {/* Menu Table or Empty */}
+      {/* Table / Empty / Skeleton */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle>Food Menu Items</CardTitle>
-            <Button onClick={() => setOpenDrawer(true)} size="sm">
+            <Button size="sm" className="mt-2 sm:mt-0" onClick={() => setOpenDrawer(true)}>
               <Plus size={16} className="mr-2" /> Add Item
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {loading ? (
-            <Table>
+            <Table className="min-w-[600px] sm:min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Item Name</TableHead>
@@ -158,11 +155,11 @@ export default function FoodMenuPage() {
               </TableBody>
             </Table>
           ) : items.length === 0 ? (
-            <Empty className="py-20">
+            <Empty className="py-12 sm:py-20">
+              <EmptyMedia variant="icon">
+                <ClipboardList className="w-12 h-12 text-muted-foreground" />
+              </EmptyMedia>
               <EmptyHeader>
-                <EmptyMedia>
-                  <ClipboardList className="w-12 h-12 text-muted-foreground" />
-                </EmptyMedia>
                 <EmptyTitle>No Menu Items</EmptyTitle>
                 <EmptyDescription>
                   You haven’t added any menu items yet. Click "Add Item" to get started.
@@ -170,7 +167,7 @@ export default function FoodMenuPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <Table>
+            <Table className="min-w-[600px] sm:min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Item Name</TableHead>
@@ -183,8 +180,8 @@ export default function FoodMenuPage() {
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item._id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableRow key={item._id} className="text-sm sm:text-base">
+                    <TableCell className="font-medium truncate">{item.name}</TableCell>
                     <TableCell className="text-right">{item.half > 0 ? item.half : '-'}</TableCell>
                     <TableCell className="text-right">{item.full > 0 ? item.full : '-'}</TableCell>
                     <TableCell>{item.unit}</TableCell>
@@ -193,26 +190,24 @@ export default function FoodMenuPage() {
                         {item.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedItem(item)
-                            setOpenDrawer(true)
-                          }}
-                        >
-                          <Edit size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteItem(item)}
-                        >
-                          <Trash2 size={16} className="text-destructive" />
-                        </Button>
-                      </div>
+                    <TableCell className="text-center flex flex-wrap sm:flex-nowrap justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedItem(item)
+                          setOpenDrawer(true)
+                        }}
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteItem(item)}
+                      >
+                        <Trash2 size={16} className="text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -249,18 +244,10 @@ export default function FoodMenuPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteItem(null)}
-              disabled={isDeleteLoading}
-            >
+            <Button variant="outline" onClick={() => setDeleteItem(null)} disabled={isDeleteLoading}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isDeleteLoading}
-            >
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleteLoading}>
               {isDeleteLoading ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>

@@ -2,7 +2,6 @@ import api from '@/lib/axios';
 export const API_BASE = '/menu';
 export async function fetchMenus() {
   const res = await api.get(API_BASE,{});
-  // pass 
   return res.data;
 }
 export async function createMenu(data: any) {

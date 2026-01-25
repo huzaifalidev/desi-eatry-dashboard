@@ -55,7 +55,7 @@ export default function CustomersPage() {
   const [deleteCustomerItem, setDeleteCustomerItem] = useState<any | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  // Load customers
+  // ---------------- Load customers ----------------
   const loadCustomers = async () => {
     setLoading(true)
     try {
@@ -80,6 +80,7 @@ export default function CustomersPage() {
         setCustomers((prev) =>
           prev.map((c) => (c._id === customer._id ? res.customer ?? res : c))
         )
+        setEditCustomer(null)
         toast.success(`${customer.firstName} ${customer.lastName} updated`)
       } else {
         const res = await createCustomer(customer)
@@ -88,7 +89,8 @@ export default function CustomersPage() {
       }
       setOpenDrawer(false)
     } catch (err: any) {
-      toast.error(err.message || 'Error saving customer')
+      console.error(err)
+      toast.error(err?.response?.data?.msg || 'Error saving customer')
     }
   }
 
@@ -116,10 +118,10 @@ export default function CustomersPage() {
       {[...Array(5)].map((_, i) => (
         <TableRow key={i} className="animate-pulse">
           <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-4 w-16 mx-auto" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-4 w-16 mx-auto" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-4 w-16 mx-auto" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-4 w-20 mx-auto" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-4 w-20 mx-auto" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-4 w-20 mx-auto" /></TableCell>
           <TableCell className="text-center flex justify-center gap-2">
             <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-6 w-6 rounded-full" />
@@ -131,33 +133,34 @@ export default function CustomersPage() {
   )
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
+
       {/* Breadcrumb */}
-      <div className="flex flex-col justify-between gap-1">
+      <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-pretty">Customers</h1>
-        <div className="text-muted-foreground">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                <BreadcrumbSeparator />
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="">Customers</BreadcrumbLink>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-        <p className="text-muted-foreground">Manage your customers.</p>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              <BreadcrumbSeparator />
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="">Customers</BreadcrumbLink>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <p className="text-sm text-muted-foreground mt-1">Manage your customers.</p>
       </div>
+
 
       {/* Table / Empty / Skeleton */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle>Customers</CardTitle>
             <Button
               size="sm"
+              className="mt-2 sm:mt-0"
               onClick={() => {
                 setEditCustomer(null)
                 setOpenDrawer(true)
@@ -167,7 +170,7 @@ export default function CustomersPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {loading ? (
             <Table>
               <TableHeader>
@@ -185,11 +188,11 @@ export default function CustomersPage() {
               </TableBody>
             </Table>
           ) : customers.length === 0 ? (
-            <Empty className="py-20">
+            <Empty className="py-12 sm:py-20">
+              <EmptyMedia variant="icon">
+                <Users className="w-12 h-12 text-muted-foreground" />
+              </EmptyMedia>
               <EmptyHeader>
-                <EmptyMedia variant="icon" >
-                  <Users className="w-12 h-12 text-muted-foreground" />
-                </EmptyMedia>
                 <EmptyTitle>No Customers Yet</EmptyTitle>
                 <EmptyDescription>
                   You haven’t added any customers yet.{' '}
@@ -205,7 +208,7 @@ export default function CustomersPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <Table>
+            <Table className="min-w-[600px] sm:min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -218,9 +221,9 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {customers.map((customer) => (
-                  <TableRow key={customer._id}>
-                    <TableCell>{customer?.firstName} {customer?.lastName}</TableCell>
-                    <TableCell>{customer?.phone}</TableCell>
+                  <TableRow key={customer._id} className="text-sm sm:text-base">
+                    <TableCell className="truncate">{customer?.firstName} {customer?.lastName}</TableCell>
+                    <TableCell className="truncate">{customer?.phone}</TableCell>
                     <TableCell className="text-right">Rs {customer.totalBilled?.toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right text-green-600 font-semibold">Rs {customer.totalPaid?.toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right">
@@ -228,7 +231,7 @@ export default function CustomersPage() {
                         Rs {customer.balance?.toLocaleString() ?? 0}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center flex justify-center gap-1">
+                    <TableCell className="text-center flex flex-wrap sm:flex-nowrap justify-center gap-1">
                       <Link href={`/dashboard/customers/${customer._id}`}>
                         <Button variant="ghost" size="sm"><Eye size={16} /></Button>
                       </Link>
@@ -236,13 +239,12 @@ export default function CustomersPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setEditCustomer(customer);  // FIRST set the customer to edit
-                          setOpenDrawer(true);        // THEN open the drawer
+                          setEditCustomer(customer)
+                          setOpenDrawer(true)
                         }}
                       >
                         <Edit size={16} />
                       </Button>
-
                       <Button
                         variant="ghost"
                         size="sm"
@@ -264,18 +266,14 @@ export default function CustomersPage() {
         open={openDrawer}
         customer={editCustomer ?? undefined}
         onOpenChange={(open) => {
-          setOpenDrawer(open);
-          if (!open) setEditCustomer(null); // reset when drawer closes
+          setOpenDrawer(open)
+          if (!open) setEditCustomer(null)
         }}
         onSave={handleSaveCustomer}
       />
 
-
       {/* Delete Dialog */}
-      <Dialog
-        open={!!deleteCustomerItem}
-        onOpenChange={() => setDeleteCustomerItem(null)}
-      >
+      <Dialog open={!!deleteCustomerItem} onOpenChange={() => setDeleteCustomerItem(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Customer</DialogTitle>

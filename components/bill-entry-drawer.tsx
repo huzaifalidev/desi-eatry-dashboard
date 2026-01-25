@@ -35,12 +35,16 @@ interface BillEntryDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   customerId?: string
+  customerFirstName: string
+  customerLastName: string
 }
 
 export function BillEntryDrawer({
   open,
   onOpenChange,
   customerId,
+  customerFirstName,
+  customerLastName,
 }: BillEntryDrawerProps) {
   const [selectedCustomer, setSelectedCustomer] = useState(customerId || '')
   const [selectedMenu, setSelectedMenu] = useState('')
@@ -140,18 +144,19 @@ export function BillEntryDrawer({
           {/* Customer */}
           <div className="space-y-2">
             <Label>Customer</Label>
-            <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+            {/* <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
               <SelectTrigger>
                 <SelectValue placeholder="Select customer" />
               </SelectTrigger>
               <SelectContent>
                 {mockCustomers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id}>
-                    {customer.name}
+                  <SelectItem key={customer._id} value={customer._id}>
+                    {customer.firstName} {customer.lastName}
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select> */}
+            <Label>{customerFirstName} {customerLastName}</Label>
           </div>
 
           {/* Menu Row */}
