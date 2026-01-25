@@ -1,7 +1,6 @@
-// components/bill-entry-drawer.tsx
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,12 +28,14 @@ import {
 } from '@/components/ui/table'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { mockCustomers, mockMenuItems } from '@/lib/mock-data'
+import { useSelector } from 'react-redux'
+import axios from 'axios'
+import { config } from '@/config/config'
 
 interface BillEntryDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  customerId?: string
+  customerId: string
   customerFirstName: string
   customerLastName: string
 }
@@ -46,21 +47,26 @@ export function BillEntryDrawer({
   customerFirstName,
   customerLastName,
 }: BillEntryDrawerProps) {
-  const [selectedCustomer, setSelectedCustomer] = useState(customerId || '')
-  const [selectedMenu, setSelectedMenu] = useState('')
+  const menuItems = useSelector((state: any) => state.menu.items)
+
+  const [selectedMenuId, setSelectedMenuId] = useState('')
   const [selectedSize, setSelectedSize] = useState<'half' | 'full'>('full')
   const [quantity, setQuantity] = useState(1)
   const [billItems, setBillItems] = useState<any[]>([])
+  const [token, setToken] = useState<string>('')
 
-  // Optional drag to close (mobile UX improvement)
+  // Safely get accessToken after client mounts
+  useEffect(() => {
+    const storedToken = localStorage.getItem('accessToken')
+    if (storedToken) setToken(storedToken)
+  }, [])
+
   const drawerRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY
-  }
-
+  const handleTouchStart = (e: React.TouchEvent) =>
+    (startY.current = e.touches[0].clientY)
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!drawerRef.current) return
     const deltaY = e.touches[0].clientY - startY.current
@@ -69,7 +75,6 @@ export function BillEntryDrawer({
       currentTranslate.current = deltaY
     }
   }
-
   const handleTouchEnd = () => {
     if (!drawerRef.current) return
     if (currentTranslate.current > 120) onOpenChange(false)
@@ -78,12 +83,12 @@ export function BillEntryDrawer({
   }
 
   const handleAddItem = () => {
-    if (!selectedMenu || !selectedCustomer) {
-      toast.error('Please select customer and menu item')
+    if (!selectedMenuId) {
+      toast.error('Please select a menu item')
       return
     }
 
-    const menuItem = mockMenuItems.find((m) => m.id === selectedMenu)
+    const menuItem = menuItems.find((m: any) => m._id === selectedMenuId)
     if (!menuItem) return
 
     const price = selectedSize === 'half' ? menuItem.half : menuItem.full
@@ -91,16 +96,18 @@ export function BillEntryDrawer({
 
     const newItem = {
       id: Date.now().toString(),
+      menuId: menuItem._id, // ✅ store menuId properly
       name: menuItem.name,
       size: selectedSize,
       unit: menuItem.unit,
       quantity,
+      price, // store per-item price
       total,
     }
 
     setBillItems((prev) => [...prev, newItem])
     toast.success('Item added')
-    setSelectedMenu('')
+    setSelectedMenuId('')
     setQuantity(1)
     setSelectedSize('full')
   }
@@ -110,20 +117,54 @@ export function BillEntryDrawer({
     toast.success('Item removed')
   }
 
-  const handleSaveBill = () => {
-    if (!selectedCustomer || billItems.length === 0) {
-      toast.error('Please add items')
+  const handleSaveBill = async () => {
+    if (billItems.length === 0) {
+      toast.error("Please add items")
       return
     }
 
-    toast.success('Bill saved successfully')
+    // Get token directly when needed
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      toast.error('You must be logged in to save a bill')
+      return
+    }
 
-    setBillItems([])
-    setSelectedCustomer('')
-    onOpenChange(false)
+    const totalAmount = billItems.reduce((sum, item) => sum + item.total, 0)
+    const itemsData = billItems.map((item) => ({
+      menuId: item.menuId, // from selected menu
+      name: item.name,
+      size: item.size,
+      unit: item.unit,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.total,
+    }))
+
+    try {
+      await axios.post(
+        `${config.apiUrl}/bill`,
+        {
+          customerId,
+          items: itemsData,
+          total: totalAmount,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // ✅ token sent properly
+          },
+        }
+      )
+
+      toast.success(`Bill for ${customerFirstName} ${customerLastName} saved`)
+      setBillItems([])
+      onOpenChange(false)
+    } catch (err: any) {
+      toast.error(err.response?.data?.msg || err.message || 'Failed to save bill')
+    }
   }
 
-  const totalAmount = billItems.reduce((sum, item) => sum + item.total, 0)
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -132,44 +173,27 @@ export function BillEntryDrawer({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg p-2"
+        className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg"
         data-vaul-drawer-direction="bottom"
       >
         <DrawerHeader>
           <DrawerTitle>Add New Bill</DrawerTitle>
-          <DrawerDescription>Create a new bill for a customer</DrawerDescription>
+          <DrawerDescription>
+            Create a new bill for <strong>{customerFirstName} {customerLastName}</strong>
+          </DrawerDescription>
         </DrawerHeader>
 
-        <div className="space-y-6 mt-4 p-2">
-          {/* Customer */}
-          <div className="space-y-2">
-            <Label>Customer</Label>
-            {/* <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockCustomers.map((customer) => (
-                  <SelectItem key={customer._id} value={customer._id}>
-                    {customer.firstName} {customer.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select> */}
-            <Label>{customerFirstName} {customerLastName}</Label>
-          </div>
-
-          {/* Menu Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="space-y-6 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Menu Item</Label>
-              <Select value={selectedMenu} onValueChange={setSelectedMenu}>
+              <Select value={selectedMenuId} onValueChange={setSelectedMenuId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select item" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockMenuItems.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
+                  {menuItems.map((item: any) => (
+                    <SelectItem key={item._id} value={item._id}>
                       {item.name}
                     </SelectItem>
                   ))}
@@ -197,24 +221,19 @@ export function BillEntryDrawer({
               <Label>Quantity</Label>
               <Input
                 type="number"
-                min="1"
+                min={1}
                 value={quantity}
-                onChange={(e) =>
-                  setQuantity(Math.max(1, parseInt(e.target.value) || 1))
-                }
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
+            <div className="space-y-2 flex items-end">
               <Button onClick={handleAddItem} className="w-full">
-                <Plus size={16} className="mr-2" />
-                Add
+                <Plus size={16} className="mr-2" /> Add
               </Button>
             </div>
           </div>
 
-          {/* Items Table */}
           {billItems.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <Table>
@@ -235,9 +254,7 @@ export function BillEntryDrawer({
                       <TableCell className="capitalize">{item.size}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        Rs {item.total.toLocaleString()}
-                      </TableCell>
+                      <TableCell className="text-right">Rs {item.total.toLocaleString()}</TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
@@ -255,18 +272,17 @@ export function BillEntryDrawer({
               <div className="bg-muted p-4 flex justify-between items-center">
                 <span className="font-semibold">Total Amount:</span>
                 <span className="text-lg font-bold">
-                  Rs {totalAmount.toLocaleString()}
+                  Rs {billItems.reduce((sum, i) => sum + i.total, 0).toLocaleString()}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveBill} disabled={!billItems.length}>
+            <Button onClick={handleSaveBill} disabled={billItems.length === 0}>
               Save Bill
             </Button>
           </div>
