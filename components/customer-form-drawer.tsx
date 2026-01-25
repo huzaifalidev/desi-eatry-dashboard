@@ -37,7 +37,8 @@ export function CustomerFormDrawer({
   onOpenChange,
   onSave,
 }: CustomerFormDrawerProps) {
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -49,13 +50,16 @@ export function CustomerFormDrawer({
   // Initialize form when customer changes
   useEffect(() => {
     if (customer) {
-      setName(customer.name)
+      setFirstName(customer.firstName || '')
+      setLastName(customer.lastName || '')
       setPhone(customer.phone)
       setAddress(customer.address)
     } else {
-      setName('')
+      setFirstName('')
+      setLastName('')
       setPhone('')
       setAddress('')
+
     }
   }, [customer])
 
@@ -85,8 +89,8 @@ export function CustomerFormDrawer({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!name || !phone ) {
-      toast.error('Please fill in all required fields')
+    if (!firstName || !phone) {
+      toast.error('Please fill required fields')
       return
     }
 
@@ -96,8 +100,9 @@ export function CustomerFormDrawer({
 
       // Build customer object (use existing id if editing)
       const customerToSave: Customer = {
-        id: customer?.id ?? Date.now().toString(),
-        name,
+        _id: customer?._id,
+        firstName,
+        lastName,
         phone,
         address,
         totalBilled: customer?.totalBilled ?? 0,
@@ -108,9 +113,6 @@ export function CustomerFormDrawer({
 
 
       onSave(customerToSave)
-
-      toast.success(customer ? `${name} updated` : `${name} added`)
-
       onOpenChange(false)
     } finally {
       setIsLoading(false)
@@ -149,12 +151,22 @@ export function CustomerFormDrawer({
 
           <form onSubmit={handleSubmit} className="space-y-6 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Customer Name</Label>
+              <Label htmlFor="firstName">First Name</Label>
               <Input
-                id="name"
-                placeholder="e.g., Huzaifa Ali"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                id="firstName"
+                placeholder="e.g., Huzaifa"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="e.g., Ali"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
                 disabled={isLoading}
               />
             </div>

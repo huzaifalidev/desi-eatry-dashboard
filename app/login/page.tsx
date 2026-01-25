@@ -25,7 +25,7 @@ export default function LoginPage() {
   const { user, loading, error } = useSelector((state: RootState) => state.auth)
 
   const [email, setEmail] = useState('admin@demo.com')
-  const [password, setPassword] = useState('Admin@123')
+  const [password, setPassword] = useState('password123')
 
 
   useEffect(() => {
