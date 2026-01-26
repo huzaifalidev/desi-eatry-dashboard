@@ -29,7 +29,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { useDispatch, useSelector } from 'react-redux'
-import { createBill } from '@/redux/slices/customer-slice'
+import { createBill, fetchCustomerById } from '@/redux/slices/customer-slice'
 import { AppDispatch, RootState } from '@/redux/store/store'
 import { Spinner } from './ui/spinner'
 
@@ -131,6 +131,7 @@ export function BillEntryDrawer({
         })
       ).unwrap()
       setBillItems([])
+      await dispatch(fetchCustomerById(customerId))
       onOpenChange(false)
       setIsLoading(false)
       toast.success(`Bill for ${customerFirstName} ${customerLastName} saved`)

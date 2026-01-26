@@ -41,21 +41,13 @@ export default function SingleCustomerPage() {
     loading,
     error,
   } = useSelector((state: RootState) => state.customer)
-  console.log('Customer from Redux:', customer)
-  console.log('Bills from Redux:', bills)
-  console.log('Payments from Redux:', payments)
-
   const [openBillDrawer, setOpenBillDrawer] = useState(false)
   const [openPaymentDrawer, setOpenPaymentDrawer] = useState(false)
   const [openWhatsApp, setOpenWhatsApp] = useState(false)
-
-  // ---------------- Fetch Customer ----------------
   useEffect(() => {
     if (!id) return
     dispatch(fetchCustomerById(id)).unwrap().catch(() => toast.error('Failed to fetch customer'))
   }, [id, dispatch])
-
-  // ---------------- Loading State ----------------
   if (loading) {
     return (
       <div className="p-4 sm:p-6 space-y-4">

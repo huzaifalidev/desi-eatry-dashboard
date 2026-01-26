@@ -1,7 +1,10 @@
 'use client'
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { fetchMenus, createMenu, updateMenu, deleteMenu } from '@/lib/api/menu'
+import axios from 'axios'
+import { config } from '@/config/config'
+import { refreshAdminToken } from './admin-slice'
+import { isClient } from '@/lib/is-client'
 
 export interface MenuItem {
   _id: string
@@ -9,7 +12,8 @@ export interface MenuItem {
   half: number
   full: number
   unit: string
-  status: string
+  status?: string
+  createdAt?: string
 }
 
 interface MenuState {
@@ -24,56 +28,146 @@ const initialState: MenuState = {
   error: null,
 }
 
-// ---------------- Async Thunks ----------------
+/* ======================================================
+   Helpers
+====================================================== */
+const authHeader = () => ({
+  Authorization: `Bearer ${localStorage.getItem('accesstoken')}`,
+})
+
+/* ======================================================
+   FETCH ALL MENUS (PUBLIC)
+   GET /menus
+====================================================== */
 export const fetchMenuItems = createAsyncThunk(
   'menu/fetchMenus',
-  async (_, { rejectWithValue }) => {
+  async (_, thunkAPI) => {
     try {
-      const res = await fetchMenus()
-      return res.menus ?? res
+      const res = await axios.get(`${config.apiUrl}/menus`)
+      return res.data.menus
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to fetch menus')
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.msg || 'Failed to fetch menus',
+      )
     }
-  }
+  },
 )
 
+/* ======================================================
+   CREATE MENU (ADMIN)
+   POST /menus
+====================================================== */
 export const addMenuItem = createAsyncThunk(
-  'menu/addMenu',
-  async (data: any, { rejectWithValue }) => {
+  'menu/createMenu',
+  async (data: Partial<MenuItem>, thunkAPI) => {
+    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
+
     try {
-      const res = await createMenu(data)
-      return res.menu ?? res
+      const res = await axios.post(
+        `${config.apiUrl}/menus`,
+        data,
+        { headers: authHeader() },
+      )
+      return res.data.menu
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to create menu item')
+      if (err.response?.status === 403) {
+        const newToken = await thunkAPI
+          .dispatch(refreshAdminToken())
+          .unwrap()
+
+        const retry = await axios.post(
+          `${config.apiUrl}/menus`,
+          data,
+          { headers: { Authorization: `Bearer ${newToken}` } },
+        )
+        return retry.data.menu
+      }
+
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.msg || 'Failed to create menu',
+      )
     }
-  }
+  },
 )
 
+/* ======================================================
+   UPDATE MENU (ADMIN)
+   PUT /menus/:id
+====================================================== */
 export const editMenuItem = createAsyncThunk(
-  'menu/editMenu',
-  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+  'menu/updateMenu',
+  async (
+    { id, data }: { id: string; data: Partial<MenuItem> },
+    thunkAPI,
+  ) => {
+    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
+
     try {
-      const res = await updateMenu(id, data)
-      return res.menu ?? res
+      const res = await axios.put(
+        `${config.apiUrl}/menus/${id}`,
+        data,
+        { headers: authHeader() },
+      )
+      return res.data.menu
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to update menu item')
+      if (err.response?.status === 403) {
+        const newToken = await thunkAPI
+          .dispatch(refreshAdminToken())
+          .unwrap()
+
+        const retry = await axios.put(
+          `${config.apiUrl}/menus/${id}`,
+          data,
+          { headers: { Authorization: `Bearer ${newToken}` } },
+        )
+        return retry.data.menu
+      }
+
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.msg || 'Failed to update menu',
+      )
     }
-  }
+  },
 )
 
+/* ======================================================
+   DELETE MENU (ADMIN)
+   DELETE /menus/:id
+====================================================== */
 export const removeMenuItem = createAsyncThunk(
   'menu/deleteMenu',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, thunkAPI) => {
+    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
+
     try {
-      await deleteMenu(id)
+      await axios.delete(
+        `${config.apiUrl}/menus/${id}`,
+        { headers: authHeader() },
+      )
       return id
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to delete menu item')
+      if (err.response?.status === 403) {
+        const newToken = await thunkAPI
+          .dispatch(refreshAdminToken())
+          .unwrap()
+
+        await axios.delete(
+          `${config.apiUrl}/menus/${id}`,
+          { headers: { Authorization: `Bearer ${newToken}` } },
+        )
+        return id
+      }
+
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.msg || 'Failed to delete menu',
+      )
     }
-  }
+  },
 )
 
-// ---------------- Slice ----------------
+/* ======================================================
+   SLICE
+====================================================== */
 const menuSlice = createSlice({
   name: 'menu',
   initialState,
@@ -86,63 +180,58 @@ const menuSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetchMenus
+      // FETCH
       .addCase(fetchMenuItems.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(fetchMenuItems.fulfilled, (state, action: PayloadAction<MenuItem[]>) => {
-        state.loading = false
-        state.items = action.payload
-      })
+      .addCase(
+        fetchMenuItems.fulfilled,
+        (state, action: PayloadAction<MenuItem[]>) => {
+          state.loading = false
+          state.items = action.payload
+        },
+      )
       .addCase(fetchMenuItems.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload as string
       })
 
-      // addMenu
+      // CREATE
       .addCase(addMenuItem.pending, (state) => {
         state.loading = true
-        state.error = null
       })
-      .addCase(addMenuItem.fulfilled, (state, action: PayloadAction<MenuItem>) => {
-        state.loading = false
-        state.items.unshift(action.payload)
-      })
+      .addCase(
+        addMenuItem.fulfilled,
+        (state, action: PayloadAction<MenuItem>) => {
+          state.loading = false
+          state.items.unshift(action.payload)
+        },
+      )
       .addCase(addMenuItem.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload as string
       })
 
-      // editMenu
-      .addCase(editMenuItem.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(editMenuItem.fulfilled, (state, action: PayloadAction<MenuItem>) => {
-        state.loading = false
-        state.items = state.items.map((item) =>
-          item._id === action.payload._id ? action.payload : item
-        )
-      })
-      .addCase(editMenuItem.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
+      // UPDATE
+      .addCase(
+        editMenuItem.fulfilled,
+        (state, action: PayloadAction<MenuItem>) => {
+          state.items = state.items.map((item) =>
+            item._id === action.payload._id ? action.payload : item,
+          )
+        },
+      )
 
-      // deleteMenu
-      .addCase(removeMenuItem.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(removeMenuItem.fulfilled, (state, action: PayloadAction<string>) => {
-        state.loading = false
-        state.items = state.items.filter((item) => item._id !== action.payload)
-      })
-      .addCase(removeMenuItem.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
+      // DELETE
+      .addCase(
+        removeMenuItem.fulfilled,
+        (state, action: PayloadAction<string>) => {
+          state.items = state.items.filter(
+            (item) => item._id !== action.payload,
+          )
+        },
+      )
   },
 })
 
