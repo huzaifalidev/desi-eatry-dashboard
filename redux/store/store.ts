@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/redux/slices/auth-slice';
 import menuReducer from '@/redux/slices/menu-slice';
 import customerReducer from '@/redux/slices/customer-slice';
+import adminReducer from '@/redux/slices/admin-slice';
 
 import {
   persistStore,
@@ -20,18 +21,18 @@ import storage from 'redux-persist/lib/storage';
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth','menu','customer'], // persist only auth slice
+  whitelist: ['admin','menu','customer'], // persist only auth slice
 };
 
 // Wrap your auth reducer with persistReducer
-const persistedAuthReducer = persistReducer(persistConfig, authReducer);
+const persistedAdminReducer = persistReducer(persistConfig, adminReducer);
 const persistedMenuReducer = persistReducer(persistConfig, menuReducer);
 const persistedCustomerReducer = persistReducer(persistConfig, customerReducer);
 
 // ---------------- Configure Store ----------------
 export const store = configureStore({
   reducer: {
-    auth: persistedAuthReducer,
+    admin: persistedAdminReducer,
     menu: persistedMenuReducer,
     customer: persistedCustomerReducer,
   },

@@ -1,57 +1,58 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { ReactNode, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sidebar } from '@/components/sidebar'
-import { Navbar } from '@/components/navbar'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchAdmin, logoutUser } from '@/redux/slices/auth-slice'
-import { RootState } from '@/redux/store/store'
+import { fetchAdminData, logoutAdmin } from '@/redux/slices/admin-slice'
 import { fetchMenuItems } from '@/redux/slices/menu-slice'
 import { fetchAllCustomers } from '@/redux/slices/customer-slice'
+import { Sidebar } from '@/components/sidebar'
+import { Navbar } from '@/components/navbar'
 import { Spinner } from '@/components/ui/spinner'
+import { RootState } from '@/redux/store/store'
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+interface DashboardLayoutProps {
+  children: ReactNode
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const dispatch = useDispatch<any>()
-  const { user, loading } = useSelector((state: RootState) => state.auth)
-  console.log('Dashboard Layout User:', user);
+  const { admin, loading } = useSelector((state: RootState) => state.admin)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  // Check authentication on mount
+  // Ensure hydration-safe mount
+  useEffect(() => setMounted(true), [])
+
+  // Initialize data
   useEffect(() => {
-    const checkAuth = async () => {
+    if (!mounted) return
+
+a    const initialize = async () => {
       try {
+        if (!admin) await dispatch(fetchAdminData())
         await dispatch(fetchMenuItems())
         await dispatch(fetchAllCustomers())
-        if (!user) {
-          // Fetch admin info using access token (refresh token handled automatically)
-          await dispatch(fetchAdmin())
-        }
-      } catch (err) {
-        // If fetch fails, log out and redirect to login
-        await dispatch(logoutUser())
-        router.push('/login')
+      } catch {
+        await dispatch(logoutAdmin())
+        router.replace('/login')
       }
     }
 
-    checkAuth()
-  }, [dispatch, router, user])
+    initialize()
+  }, [dispatch, admin, mounted, router])
 
-  // Redirect if user is null after loading
+  // Redirect if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login')
+    if (mounted && !loading && !admin) {
+      router.replace('/login')
     }
-  }, [loading, user, router])
+  }, [mounted, loading, admin, router])
 
-  // Show loader while fetching
-  if (loading || !user) {
-    return <Spinner className='flex justify-center items-center h-screen' />
+  // Show loader until auth check complete
+  if (!mounted || loading || !admin) {
+    return <Spinner className="flex justify-center items-center h-screen" />
   }
 
   return (
@@ -59,11 +60,10 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <Sidebar mobileOpen={sidebarOpen} setMobileOpen={setSidebarOpen} />
 
-      {/* Main Content */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
-
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-4">{children}</main>
       </div>
     </div>
   )

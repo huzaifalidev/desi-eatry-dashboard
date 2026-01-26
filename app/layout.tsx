@@ -1,10 +1,10 @@
-// app/layout.tsx (server component)
+// app/layout.tsx
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Analytics } from '@vercel/analytics/next'
-import ClientProviders from './ClientProviders'
 import { Toaster } from '@/components/ui/sonner'
+import ClientProviders from './ClientProviders'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
