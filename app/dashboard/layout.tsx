@@ -25,11 +25,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Initialize data
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !admin) return
 
     const initialize = async () => {
       try {
-        if (!admin) await dispatch(fetchAdminData())
         await dispatch(fetchMenuItems())
         await dispatch(fetchAllCustomers())
       } catch {
@@ -39,7 +38,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
 
     initialize()
-  }, [dispatch, admin, mounted, router])
+  }, [dispatch, admin, mounted])
 
   // Redirect if not authenticated
   useEffect(() => {

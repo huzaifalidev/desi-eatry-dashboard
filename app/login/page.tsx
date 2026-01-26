@@ -59,8 +59,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center bg-zinc-700 min-h-screen max-sm:min-h-[100svh]">
-      <Card className="w-full max-w-md shadow-lg bg-zinc-900 max-sm:mx-4">
+    <div className="flex items-center justify-center bg-zinc-200 dark:bg-zinc-950 min-h-screen max-sm:min-h-[100svh]">
+      <Card className="w-full max-w-md shadow-lg bg-[#fafafa] dark:bg-zinc-900 max-sm:mx-4">
         <CardHeader>
           <CardTitle>Desi Eatry</CardTitle>
           <CardDescription>Billing & Inventory System</CardDescription>
