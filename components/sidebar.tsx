@@ -37,7 +37,7 @@ export function Sidebar({
   setMobileOpen: (value: boolean) => void
 }) {
   const dispatch = useDispatch()
-  const sidebarCollapsed = useSelector((state: any) => state.auth.sidebarCollapsed)
+  const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true' ? true : false
   const pathname = usePathname()
 
   return (

@@ -77,9 +77,8 @@ export const fetchAdminData = createAsyncThunk(
     if (!accessToken) return thunkAPI.rejectWithValue('No access token');
 
     try {
-      const res = await axios.post(
-        `${config.apiUrl}/admin/get-admin`,
-        {},
+      const res = await axios.get(
+        `${config.apiUrl}/admin/me`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       return res.data.admin;
@@ -88,9 +87,8 @@ export const fetchAdminData = createAsyncThunk(
         // Try refreshing token
         const newToken = await thunkAPI.dispatch(refreshAdminToken()).unwrap();
 
-        const retry = await axios.post(
-          `${config.apiUrl}/admin/get-admin`,
-          {},
+        const retry = await axios.get(
+          `${config.apiUrl}/admin/me`,
           { headers: { Authorization: `Bearer ${newToken}` } }
         );
         return retry.data.admin;

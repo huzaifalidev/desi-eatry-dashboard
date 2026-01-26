@@ -14,14 +14,14 @@ import {
 import { DropdownMenuLabel } from '@radix-ui/react-dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { useDispatch, useSelector } from 'react-redux'
-import { logoutUser } from '@/redux/slices/auth-slice'
 import { RootState } from '@/redux/store/store'
+import { logoutAdmin } from '@/redux/slices/admin-slice'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const dispatch = useDispatch()
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.admin.admin);
   return (
     <nav className="dark:bg-zinc-900 bg-[#fafafa] border-b border-border h-16 px-4 sm:px-6 sticky top-0 z-10">
       <div className="w-full h-full flex items-center justify-between">
@@ -103,7 +103,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
               <DropdownMenuItem
                 onClick={() => {
-                  dispatch(logoutUser())
+                  dispatch(logoutAdmin())
                   router.push('/login')
                 }}
               >

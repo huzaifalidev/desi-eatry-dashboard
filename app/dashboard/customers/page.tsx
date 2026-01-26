@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Eye, Users } from 'lucide-react'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '@/redux/store/store'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -41,72 +44,50 @@ import {
 } from '@/components/ui/dialog'
 
 import {
-  fetchCustomers,
-  createCustomer,
-  updateCustomer,
-  deleteCustomer,
-} from '@/lib/api/customer'
+  fetchAllCustomers,
+  addCustomer,
+  editCustomer,
+  removeCustomer,
+  Customer,
+} from '@/redux/slices/customer-slice'
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const dispatch = useDispatch<any>()
+  const { customers, loading } = useSelector((state: RootState) => state.customer)
+
   const [openDrawer, setOpenDrawer] = useState(false)
-  const [editCustomer, setEditCustomer] = useState<any | null>(null)
-  const [deleteCustomerItem, setDeleteCustomerItem] = useState<any | null>(null)
+  const [editCustomerData, setEditCustomerData] = useState<Customer | null>(null)
+  const [deleteCustomerItem, setDeleteCustomerItem] = useState<Customer | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  // ---------------- Load customers ----------------
-  const loadCustomers = async () => {
-    setLoading(true)
-    try {
-      const res = await fetchCustomers()
-      setCustomers(res.customers ?? res)
-    } catch (err: any) {
-      toast.error('Failed to fetch customers')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    loadCustomers()
-  }, [])
+    dispatch(fetchAllCustomers())
+  }, [dispatch])
 
-  // ---------------- Save Customer ----------------
   const handleSaveCustomer = async (customer: any) => {
     try {
       if (customer._id) {
-        const res = await updateCustomer(customer._id, customer)
-        setCustomers((prev) =>
-          prev.map((c) => (c._id === customer._id ? res.customer ?? res : c))
-        )
-        setEditCustomer(null)
+        await dispatch(editCustomer({ id: customer._id, data: customer })).unwrap()
         toast.success(`${customer.firstName} ${customer.lastName} updated`)
       } else {
-        const res = await createCustomer(customer)
-        setCustomers((prev) => [res.customer ?? res, ...prev])
+        await dispatch(addCustomer(customer)).unwrap()
         toast.success(`${customer.firstName} ${customer.lastName} added`)
       }
       setOpenDrawer(false)
+      setEditCustomerData(null)
     } catch (err: any) {
-      console.error(err)
-      toast.error(err?.response?.data?.msg || 'Error saving customer')
+      toast.error(err || 'Failed to save customer')
     }
   }
-
-  // ---------------- Delete Customer ----------------
   const handleDelete = async () => {
     if (!deleteCustomerItem) return
     try {
       setDeleteLoading(true)
-      await deleteCustomer(deleteCustomerItem._id)
-      setCustomers((prev) =>
-        prev.filter((c) => c._id !== deleteCustomerItem._id)
-      )
+      await dispatch(removeCustomer(deleteCustomerItem._id)).unwrap()
       toast.success(`Customer deleted`)
       setDeleteCustomerItem(null)
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete customer')
+      toast.error(err || 'Failed to delete customer')
     } finally {
       setDeleteLoading(false)
     }
@@ -134,7 +115,6 @@ export default function CustomersPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-
       {/* Breadcrumb */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-pretty">Customers</h1>
@@ -152,7 +132,6 @@ export default function CustomersPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage your customers.</p>
       </div>
 
-
       {/* Table / Empty / Skeleton */}
       <Card>
         <CardHeader>
@@ -162,7 +141,7 @@ export default function CustomersPage() {
               size="sm"
               className="mt-2 sm:mt-0"
               onClick={() => {
-                setEditCustomer(null)
+                setEditCustomerData(null)
                 setOpenDrawer(true)
               }}
             >
@@ -224,11 +203,11 @@ export default function CustomersPage() {
                   <TableRow key={customer._id} className="text-sm sm:text-base">
                     <TableCell className="truncate">{customer?.firstName} {customer?.lastName}</TableCell>
                     <TableCell className="truncate">{customer?.phone}</TableCell>
-                    <TableCell className="text-right">Rs {customer.totalBilled?.toLocaleString() ?? 0}</TableCell>
-                    <TableCell className="text-right text-green-600 font-semibold">Rs {customer.totalPaid?.toLocaleString() ?? 0}</TableCell>
+                    <TableCell className="text-right">Rs {customer?.summary.totalBilled?.toLocaleString() ?? 0}</TableCell>
+                    <TableCell className="text-right text-green-600 font-semibold">Rs {customer?.summary?.totalPaid?.toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={customer.balance > 0 ? 'destructive' : 'secondary'}>
-                        Rs {customer.balance?.toLocaleString() ?? 0}
+                      <Badge variant={customer?.summary?.balance > 0 ? 'destructive' : 'secondary'}>
+                        Rs {customer.summary?.balance?.toLocaleString() ?? 0}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center flex flex-wrap sm:flex-nowrap justify-center gap-1">
@@ -239,7 +218,7 @@ export default function CustomersPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setEditCustomer(customer)
+                          setEditCustomerData(customer)
                           setOpenDrawer(true)
                         }}
                       >
@@ -264,10 +243,10 @@ export default function CustomersPage() {
       {/* Drawer for Add/Edit */}
       <CustomerFormDrawer
         open={openDrawer}
-        customer={editCustomer ?? undefined}
+        customer={editCustomerData ?? undefined}
         onOpenChange={(open) => {
           setOpenDrawer(open)
-          if (!open) setEditCustomer(null)
+          if (!open) setEditCustomerData(null)
         }}
         onSave={handleSaveCustomer}
       />

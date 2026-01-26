@@ -1,24 +1,22 @@
 'use client'
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import {
-  fetchCustomers,
-  fetchCustomer,
-  createCustomer,
-  updateCustomer,
-  deleteCustomer,
-  restoreCustomer,
-} from '@/lib/api/customer'
+import axios from 'axios'
+import { toast } from 'sonner'
+import { config } from '@/config/config'
 
 export interface Customer {
   _id: string
-  name: string
+  firstName: string
+  lastName: string
   phone: string
   address?: string
   isActive?: boolean
-  totalBilled?: number
-  totalPaid?: number
-  balance?: number
+  summary?: {
+    totalBilled: number
+    totalPaid: number
+    balance: number
+  }
 }
 
 interface CustomerState {
@@ -34,62 +32,91 @@ const initialState: CustomerState = {
 }
 
 // ---------------- Async Thunks ----------------
+
+// Fetch all customers
 export const fetchAllCustomers = createAsyncThunk(
   'customer/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetchCustomers()
-      return res.customers ?? res
+      const accessToken = localStorage.getItem('accesstoken')
+      const res = await axios.get(`${config.apiUrl}/admin/users`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      return res.data ?? []
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to fetch customers')
+      toast.error(err.response?.data?.msg || 'Failed to fetch customers')
+      return rejectWithValue(err.response?.data?.msg || 'Failed to fetch customers')
     }
   }
 )
 
+// Add new customer
 export const addCustomer = createAsyncThunk(
   'customer/add',
   async (data: any, { rejectWithValue }) => {
     try {
-      const res = await createCustomer(data)
-      return res.customer ?? res
+      const accessToken = localStorage.getItem('accesstoken')
+      const res = await axios.post(`${config.apiUrl}/admin/users`, data, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      toast.success('Customer added successfully')
+      return res.data.user
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to create customer')
+      toast.error(err.response?.data?.msg || 'Failed to create customer')
+      return rejectWithValue(err.response?.data?.msg || 'Failed to create customer')
     }
   }
 )
 
+// Edit customer
 export const editCustomer = createAsyncThunk(
   'customer/edit',
   async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
     try {
-      const res = await updateCustomer(id, data)
-      return res.customer ?? res
+      const accessToken = localStorage.getItem('accesstoken')
+      const res = await axios.put(`${config.apiUrl}/admin/users/${id}`, data, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      toast.success('Customer updated successfully')
+      return res.data.user
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to update customer')
+      toast.error(err.response?.data?.msg || 'Failed to update customer')
+      return rejectWithValue(err.response?.data?.msg || 'Failed to update customer')
     }
   }
 )
 
+// Fetch customer by ID
+export const fetchCustomerById = createAsyncThunk(
+  'customer/fetchById',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const accessToken = localStorage.getItem('accesstoken')
+      const res = await axios.get(`${config.apiUrl}/admin/users/${id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      return res.data
+    } catch (err: any) {
+      toast.error(err.response?.data?.msg || 'Failed to fetch customer')
+      return rejectWithValue(err.response?.data?.msg || 'Failed to fetch customer')
+    }
+  }
+)
+
+// Soft delete customer
 export const removeCustomer = createAsyncThunk(
   'customer/delete',
   async (id: string, { rejectWithValue }) => {
     try {
-      await deleteCustomer(id)
+      const accessToken = localStorage.getItem('accesstoken')
+      await axios.delete(`${config.apiUrl}/admin/users/${id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      toast.success('Customer deleted successfully')
       return id
     } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to delete customer')
-    }
-  }
-)
-
-export const restoreCustomerById = createAsyncThunk(
-  'customer/restore',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      const res = await restoreCustomer(id)
-      return res.customer ?? res
-    } catch (err: any) {
-      return rejectWithValue(err.message || 'Failed to restore customer')
+      toast.error(err.response?.data?.msg || 'Failed to delete customer')
+      return rejectWithValue(err.response?.data?.msg || 'Failed to delete customer')
     }
   }
 )
@@ -164,17 +191,16 @@ const customerSlice = createSlice({
         state.loading = false
         state.error = action.payload as string
       })
-
-      // restoreCustomerById
-      .addCase(restoreCustomerById.pending, (state) => {
+      // fetchCustomerById  
+      .addCase(fetchCustomerById.pending, (state) => {
         state.loading = true
         state.error = null
-      })
-      .addCase(restoreCustomerById.fulfilled, (state, action: PayloadAction<Customer>) => {
+      } )
+      .addCase(fetchCustomerById.fulfilled, (state, action: PayloadAction<Customer>) => {
         state.loading = false
-        state.customers.unshift(action.payload)
+        state.customer = action.payload
       })
-      .addCase(restoreCustomerById.rejected, (state, action) => {
+      .addCase(fetchCustomerById.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload as string
       })
