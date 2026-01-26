@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     if (!mounted) return
 
-a    const initialize = async () => {
+ const initialize = async () => {
       try {
         if (!admin) await dispatch(fetchAdminData())
         await dispatch(fetchMenuItems())
