@@ -43,19 +43,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 
-import {
-  fetchAllCustomers,
-  addCustomer,
-  editCustomer,
-  removeCustomer,
-  Customer,
-} from '@/redux/slices/customer-slice'
+import { fetchAllCustomers, addCustomer, editCustomer, removeCustomer } from '@/redux/slices/customer-slice'
+import type { Customer } from '@/lib/types'
 
 export default function CustomersPage() {
   const dispatch = useDispatch<any>()
   const { customers, loading } = useSelector((state: RootState) => state.customer)
   const [openDrawer, setOpenDrawer] = useState(false)
-  const [editCustomerData, setEditCustomerData] = useState<Customer | null>(null)
+  const [editCustomerData, setEditCustomerData] = useState<any>(null)
   const [deleteCustomerItem, setDeleteCustomerItem] = useState<Customer | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
@@ -186,7 +181,7 @@ export default function CustomersPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <Table className="min-w-[600px] sm:min-w-full">
+            <Table className="min-w-150 sm:min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -202,10 +197,10 @@ export default function CustomersPage() {
                   <TableRow key={customer._id} className="text-sm sm:text-base">
                     <TableCell className="truncate">{customer?.firstName} {customer?.lastName}</TableCell>
                     <TableCell className="truncate">{customer?.phone}</TableCell>
-                    <TableCell className="text-right">Rs {customer?.summary.totalBilled?.toLocaleString() ?? 0}</TableCell>
+                    <TableCell className="text-right">Rs {customer?.summary?.totalBilled?.toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right text-green-600 font-semibold">Rs {customer?.summary?.totalPaid?.toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={customer?.summary?.balance > 0 ? 'destructive' : 'secondary'}>
+                      <Badge variant={(customer?.summary?.balance ?? 0) > 0 ? 'destructive' : 'secondary'}>
                         Rs {customer.summary?.balance?.toLocaleString() ?? 0}
                       </Badge>
                     </TableCell>

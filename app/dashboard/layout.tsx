@@ -1,6 +1,6 @@
 // app/dashboard/layout.tsx
 'use client'
-import React, { ReactNode, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchAdminData, logoutAdmin } from '@/redux/slices/admin-slice'
@@ -10,10 +10,8 @@ import { Sidebar } from '@/components/sidebar'
 import { Navbar } from '@/components/navbar'
 import { Spinner } from '@/components/ui/spinner'
 import { RootState } from '@/redux/store/store'
+import type { DashboardLayoutProps } from '@/lib/types'
 
-interface DashboardLayoutProps {
-  children: ReactNode
-}
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
@@ -29,7 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     if (!mounted) return
 
- const initialize = async () => {
+    const initialize = async () => {
       try {
         if (!admin) await dispatch(fetchAdminData())
         await dispatch(fetchMenuItems())
@@ -52,7 +50,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Show loader until auth check complete
   if (!mounted || loading || !admin) {
-    return <Spinner className="flex justify-center items-center h-screen" />
+    return (
+      <div className='flex justify-center items-center h-screen'>
+        <Spinner size={24} />
+      </div>
+    )
   }
 
   return (

@@ -16,20 +16,8 @@ import { WhatsAppInvoiceDialog } from '@/components/whatsapp-invoice-dialog'
 import { toast } from 'sonner'
 
 import { fetchCustomerById } from '@/redux/slices/customer-slice'
+import type { Customer, Bill, Payment, BillItem } from '@/lib/types'
 import { RootState } from '@/redux/store/store'
-interface Customer {
-  _id: string
-  firstName: string
-  lastName: string
-  phone: string
-  address?: string
-  isActive?: boolean
-  summary?: {
-    totalBilled: number
-    totalPaid: number
-    balance: number
-  }
-}
 export default function SingleCustomerPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -174,7 +162,7 @@ export default function SingleCustomerPage() {
               </Empty>
             ) : (
               <div className="space-y-2">
-                {bills.map(bill => (
+                {bills.map((bill: Bill) => (
                   <Card key={bill._id} className="border border-gray-200">
                     <CardHeader>
                       <div className="flex justify-between">
@@ -184,7 +172,7 @@ export default function SingleCustomerPage() {
                     </CardHeader>
                     <CardContent>
                       <ul className="list-disc ml-5">
-                        {bill.items.map(item => (
+                        {bill.items.map((item: BillItem) => (
                           <li key={item._id}>{item.quantity} x {item.name} ({item.size}) - Rs {item.total}</li>
                         ))}
                       </ul>
@@ -229,9 +217,9 @@ export default function SingleCustomerPage() {
       <BillEntryDrawer
         open={openBillDrawer}
         onOpenChange={setOpenBillDrawer}
-        customerId={customer._id}
-        customerFirstName={customer.firstName}
-        customerLastName={customer.lastName}
+        customerId={customer._id}               // required
+        customerFirstName={customer.firstName}  // required
+        customerLastName={customer.lastName}    // required
       />
 
       <PaymentEntryDrawer
