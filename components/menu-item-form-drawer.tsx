@@ -180,9 +180,12 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="plate">Plate</SelectItem>
-                <SelectItem value="glass">Glass</SelectItem>
-                <SelectItem value="bowl">Bowl</SelectItem>
+                <SelectItem value="piece">Piece</SelectItem>
                 <SelectItem value="serving">Serving</SelectItem>
+                <SelectItem value="cup">Cup</SelectItem>
+                <SelectItem value="box">Box</SelectItem>
+                <SelectItem value="bottle">Bottle</SelectItem>
+                <SelectItem value="glass">Glass</SelectItem>
               </SelectContent>
             </Select>
           </div>

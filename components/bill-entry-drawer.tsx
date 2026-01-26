@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,9 +28,10 @@ import {
 } from '@/components/ui/table'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { useSelector } from 'react-redux'
-import axios from 'axios'
-import { config } from '@/config/config'
+import { useDispatch, useSelector } from 'react-redux'
+import { createBill } from '@/redux/slices/customer-slice'
+import { AppDispatch, RootState } from '@/redux/store/store'
+import { Spinner } from './ui/spinner'
 
 interface BillEntryDrawerProps {
   open: boolean
@@ -47,24 +48,19 @@ export function BillEntryDrawer({
   customerFirstName,
   customerLastName,
 }: BillEntryDrawerProps) {
-  const menuItems = useSelector((state: any) => state.menu.items)
-
+  const menuItems = useSelector((state: RootState) => state.menu.items)
+  const dispatch = useDispatch<AppDispatch>()
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedMenuId, setSelectedMenuId] = useState('')
   const [selectedSize, setSelectedSize] = useState<'half' | 'full'>('full')
   const [quantity, setQuantity] = useState(1)
   const [billItems, setBillItems] = useState<any[]>([])
-  const [token, setToken] = useState<string>('')
-
-  // Safely get accessToken after client mounts
-  useEffect(() => {
-    const storedToken = localStorage.getItem('accessToken')
-    if (storedToken) setToken(storedToken)
-  }, [])
 
   const drawerRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
 
+  // ---------------- Touch Swipe ----------------
   const handleTouchStart = (e: React.TouchEvent) =>
     (startY.current = e.touches[0].clientY)
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -82,31 +78,28 @@ export function BillEntryDrawer({
     currentTranslate.current = 0
   }
 
+  // ---------------- Add / Remove Items ----------------
   const handleAddItem = () => {
-    if (!selectedMenuId) {
-      toast.error('Please select a menu item')
-      return
-    }
-
-    const menuItem = menuItems.find((m: any) => m._id === selectedMenuId)
+    if (!selectedMenuId) return toast.error('Please select a menu item')
+    const menuItem = menuItems.find((m) => m._id === selectedMenuId)
     if (!menuItem) return
 
     const price = selectedSize === 'half' ? menuItem.half : menuItem.full
     const total = price * quantity
 
-    const newItem = {
-      id: Date.now().toString(),
-      menuId: menuItem._id, // ✅ store menuId properly
-      name: menuItem.name,
-      size: selectedSize,
-      unit: menuItem.unit,
-      quantity,
-      price, // store per-item price
-      total,
-    }
-
-    setBillItems((prev) => [...prev, newItem])
-    toast.success('Item added')
+    setBillItems((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        menuId: menuItem._id,
+        name: menuItem.name,
+        size: selectedSize,
+        unit: menuItem.unit,
+        quantity,
+        price,
+        total,
+      },
+    ])
     setSelectedMenuId('')
     setQuantity(1)
     setSelectedSize('full')
@@ -117,54 +110,35 @@ export function BillEntryDrawer({
     toast.success('Item removed')
   }
 
+  // ---------------- Save Bill using Redux ----------------
   const handleSaveBill = async () => {
-    if (billItems.length === 0) {
-      toast.error("Please add items")
-      return
-    }
-
-    // Get token directly when needed
-    const token = localStorage.getItem('accessToken')
-    if (!token) {
-      toast.error('You must be logged in to save a bill')
-      return
-    }
-
-    const totalAmount = billItems.reduce((sum, item) => sum + item.total, 0)
-    const itemsData = billItems.map((item) => ({
-      menuId: item.menuId, // from selected menu
-      name: item.name,
-      size: item.size,
-      unit: item.unit,
-      quantity: item.quantity,
-      price: item.price,
-      total: item.total,
-    }))
+    if (billItems.length === 0) return toast.error('Please add items')
 
     try {
-      await axios.post(
-        `${config.apiUrl}/bill`,
-        {
+      setIsLoading(true)
+      await dispatch(
+        createBill({
           customerId,
-          items: itemsData,
-          total: totalAmount,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`, // ✅ token sent properly
-          },
-        }
-      )
-
-      toast.success(`Bill for ${customerFirstName} ${customerLastName} saved`)
+          items: billItems.map((item) => ({
+            menuId: item.menuId,
+            name: item.name,
+            size: item.size,
+            unit: item.unit,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.total,
+          })),
+        })
+      ).unwrap()
       setBillItems([])
       onOpenChange(false)
+      setIsLoading(false)
+      toast.success(`Bill for ${customerFirstName} ${customerLastName} saved`)
     } catch (err: any) {
-      toast.error(err.response?.data?.msg || err.message || 'Failed to save bill')
+      toast.error(err || 'Failed to save bill')
+      setIsLoading(false)
     }
   }
-
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -179,11 +153,15 @@ export function BillEntryDrawer({
         <DrawerHeader>
           <DrawerTitle>Add New Bill</DrawerTitle>
           <DrawerDescription>
-            Create a new bill for <strong>{customerFirstName} {customerLastName}</strong>
+            Create a new bill for{' '}
+            <strong>
+              {customerFirstName} {customerLastName}
+            </strong>
           </DrawerDescription>
         </DrawerHeader>
 
         <div className="space-y-6 mt-4">
+          {/* Menu, Size, Qty */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Menu Item</Label>
@@ -192,7 +170,7 @@ export function BillEntryDrawer({
                   <SelectValue placeholder="Select item" />
                 </SelectTrigger>
                 <SelectContent>
-                  {menuItems.map((item: any) => (
+                  {menuItems.map((item) => (
                     <SelectItem key={item._id} value={item._id}>
                       {item.name}
                     </SelectItem>
@@ -223,7 +201,9 @@ export function BillEntryDrawer({
                 type="number"
                 min={1}
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                }
               />
             </div>
 
@@ -234,6 +214,7 @@ export function BillEntryDrawer({
             </div>
           </div>
 
+          {/* Bill Items Table */}
           {billItems.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <Table>
@@ -254,7 +235,9 @@ export function BillEntryDrawer({
                       <TableCell className="capitalize">{item.size}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
-                      <TableCell className="text-right">Rs {item.total.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        Rs {item.total.toLocaleString()}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
@@ -283,7 +266,7 @@ export function BillEntryDrawer({
               Cancel
             </Button>
             <Button onClick={handleSaveBill} disabled={billItems.length === 0}>
-              Save Bill
+              {isLoading && <Spinner />}  Save Bill
             </Button>
           </div>
         </div>

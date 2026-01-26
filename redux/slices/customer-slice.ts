@@ -21,15 +21,22 @@ export interface Customer {
 
 interface CustomerState {
   customers: Customer[]
+  selectedCustomer: Customer | null
+  selectedBills: any[]
+  selectedPayments: any[]
   loading: boolean
   error: string | null
 }
 
 const initialState: CustomerState = {
   customers: [],
+  selectedCustomer: null,
+  selectedBills: [],
+  selectedPayments: [],
   loading: false,
   error: null,
 }
+
 
 // ---------------- Async Thunks ----------------
 
@@ -121,6 +128,26 @@ export const removeCustomer = createAsyncThunk(
   }
 )
 
+export const createBill = createAsyncThunk(
+  'customer/createBill',
+  async (
+    { customerId, items, date }: { customerId: string; items: any[]; date?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const accessToken = localStorage.getItem('accesstoken')
+      const res = await axios.post(
+        `${config.apiUrl}/admin/bill`,
+        { customerId, items, date },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      return res.data.bill
+    } catch (err: any) {
+      toast.error(err.response?.data?.msg || 'Failed to create bill')
+      return rejectWithValue(err.response?.data?.msg || 'Failed to create bill')
+    }
+  }
+)
 // ---------------- Slice ----------------
 const customerSlice = createSlice({
   name: 'customer',
@@ -128,6 +155,9 @@ const customerSlice = createSlice({
   reducers: {
     clearCustomerState(state) {
       state.customers = []
+      state.selectedCustomer = null
+      state.selectedBills = []
+      state.selectedPayments = []
       state.loading = false
       state.error = null
     },
@@ -191,17 +221,66 @@ const customerSlice = createSlice({
         state.loading = false
         state.error = action.payload as string
       })
-      // fetchCustomerById  
+      // fetchCustomerById
       .addCase(fetchCustomerById.pending, (state) => {
         state.loading = true
         state.error = null
-      } )
-      .addCase(fetchCustomerById.fulfilled, (state, action: PayloadAction<Customer>) => {
+      })
+      .addCase(fetchCustomerById.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false
-        state.customer = action.payload
+        const fetchedCustomer = action.payload?.user ?? action.payload
+        state.selectedCustomer = fetchedCustomer
+        state.selectedBills = action.payload?.bills ?? []
+        state.selectedPayments = action.payload?.payments ?? []
+        if (fetchedCustomer?._id) {
+          const index = state.customers.findIndex((c) => c._id === fetchedCustomer._id)
+          if (index !== -1) {
+            state.customers[index] = fetchedCustomer
+          }
+        }
       })
       .addCase(fetchCustomerById.rejected, (state, action) => {
         state.loading = false
+        state.error = action.payload as string
+      })
+      .addCase(createBill.pending, (state) => {
+        state.error = null
+      })
+      .addCase(createBill.fulfilled, (state, action: PayloadAction<any>) => {
+        const newBill = action.payload?.bill ?? action.payload
+        if (newBill) {
+          state.selectedBills = [newBill, ...(state.selectedBills ?? [])]
+          if (state.selectedCustomer) {
+            const billTotal = newBill.total ?? newBill.amount ?? 0
+            const prevSummary = state.selectedCustomer.summary || {
+              totalBilled: 0,
+              totalPaid: 0,
+              balance: 0,
+            }
+
+            const updatedSummary = {
+              totalBilled: prevSummary.totalBilled + billTotal,
+              totalPaid: prevSummary.totalPaid,
+              balance: prevSummary.totalBilled + billTotal - prevSummary.totalPaid,
+            }
+
+            state.selectedCustomer = {
+              ...state.selectedCustomer,
+              summary: updatedSummary,
+            }
+
+            // sync list view
+            const idx = state.customers.findIndex((c) => c._id === state.selectedCustomer?._id)
+            if (idx !== -1) {
+              state.customers[idx] = {
+                ...state.customers[idx],
+                summary: updatedSummary,
+              }
+            }
+          }
+        }
+      })
+      .addCase(createBill.rejected, (state, action) => {
         state.error = action.payload as string
       })
   },

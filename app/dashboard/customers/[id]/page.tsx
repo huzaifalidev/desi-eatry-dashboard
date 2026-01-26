@@ -34,11 +34,13 @@ export default function SingleCustomerPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const dispatch = useDispatch<any>()
-  const customer = useSelector((state: RootState) => state.customer?.customer?.user)
-  const bills = useSelector((state: RootState) => state.customer?.customer?.bills)
-  const payments = useSelector((state: RootState) => state.customer?.customer?.payments)
-  const loading = useSelector((state: RootState) => state.customer?.loading)
-  const error = useSelector((state: RootState) => state.customer?.error)
+  const {
+    selectedCustomer: customer,
+    selectedBills: bills,
+    selectedPayments: payments,
+    loading,
+    error,
+  } = useSelector((state: RootState) => state.customer)
   console.log('Customer from Redux:', customer)
   console.log('Bills from Redux:', bills)
   console.log('Payments from Redux:', payments)
@@ -50,19 +52,7 @@ export default function SingleCustomerPage() {
   // ---------------- Fetch Customer ----------------
   useEffect(() => {
     if (!id) return
-    dispatch(fetchCustomerById(id))
-      .unwrap()
-      .then((data) => {
-        // merge bills/payments into customer
-        const customerWithHistory = {
-          ...data.user,
-          bills: data.bills,
-          payments: data.payments,
-        }
-        // store customerWithHistory in Redux
-      })
-      .catch(() => toast.error('Failed to fetch customer'))
-
+    dispatch(fetchCustomerById(id)).unwrap().catch(() => toast.error('Failed to fetch customer'))
   }, [id, dispatch])
 
   // ---------------- Loading State ----------------
@@ -152,7 +142,7 @@ export default function SingleCustomerPage() {
             <CardTitle className="text-sm text-muted-foreground">Total Billed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">Rs {customer?.summary?.totalBilled.toLocaleString()}</div>
+            <div className="text-xl sm:text-2xl font-bold">Rs {customer?.summary?.totalBilled?.toLocaleString() ?? '0'}</div>
           </CardContent>
         </Card>
 
@@ -161,7 +151,7 @@ export default function SingleCustomerPage() {
             <CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-green-600">Rs {customer?.summary?.totalPaid.toLocaleString()}</div>
+            <div className="text-xl sm:text-2xl font-bold text-green-600">Rs {customer?.summary?.totalPaid?.toLocaleString() ?? '0'}</div>
           </CardContent>
         </Card>
 
@@ -170,7 +160,7 @@ export default function SingleCustomerPage() {
             <CardTitle className="text-sm text-muted-foreground">Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-destructive">Rs {customer?.summary?.balance.toLocaleString()}</div>
+            <div className="text-xl sm:text-2xl font-bold text-destructive">Rs {customer?.summary?.balance?.toLocaleString() ?? '0'}</div>
           </CardContent>
         </Card>
       </div>

@@ -7,6 +7,7 @@ interface AdminState {
   admin: any | null;
   loading: boolean;
   error: string | null;
+  sidebarCollapsed: boolean;
 }
 
 const isClient = () => typeof window !== 'undefined';
@@ -113,7 +114,6 @@ export const logoutAdmin = createAsyncThunk('admin/logoutAdmin', async () => {
   } catch (err) {
     console.error('Logout error', err);
   }
-
   localStorage.removeItem('accesstoken');
   localStorage.removeItem('refreshtoken');
 });
@@ -125,12 +125,20 @@ const initialState: AdminState = {
   admin: null,
   loading: false,
   error: null,
+  sidebarCollapsed: false,
 };
 
 const adminSlice = createSlice({
   name: 'admin',
   initialState,
-  reducers: {},
+  reducers: {
+    toggleSidebar(state) {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+      if (isClient()) {
+        localStorage.setItem('sidebarCollapsed', state.sidebarCollapsed.toString());
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Login
@@ -170,5 +178,7 @@ const adminSlice = createSlice({
       });
   },
 });
+
+export const { toggleSidebar } = adminSlice.actions;
 
 export default adminSlice.reducer;

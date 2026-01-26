@@ -54,7 +54,6 @@ import {
 export default function CustomersPage() {
   const dispatch = useDispatch<any>()
   const { customers, loading } = useSelector((state: RootState) => state.customer)
-
   const [openDrawer, setOpenDrawer] = useState(false)
   const [editCustomerData, setEditCustomerData] = useState<Customer | null>(null)
   const [deleteCustomerItem, setDeleteCustomerItem] = useState<Customer | null>(null)
