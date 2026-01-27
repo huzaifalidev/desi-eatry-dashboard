@@ -7,6 +7,8 @@ import { Navbar } from "@/components/navbar";
 import type { DashboardLayoutProps } from "@/lib/types";
 import { useAppDispatch } from "@/hooks/redux-hooks";
 import { fetchAdminData } from "@/redux/slices/admin-slice";
+import { fetchMenuItems } from "@/redux/slices/menu-slice";
+import { fetchAllCustomers } from "@/redux/slices/customer-slice";
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,6 +16,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     dispatch(fetchAdminData());
+    dispatch(fetchMenuItems());
+    dispatch(fetchAllCustomers());
   }, [dispatch]);
 
   return (

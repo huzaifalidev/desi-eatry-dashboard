@@ -56,7 +56,7 @@ export const addCustomer = createAsyncThunk(
   async (data: any, { rejectWithValue }) => {
     try {
       const res = await api.post("/admin/users", data);
-      toast.success("Customer added successfully");
+      toast.success("Customer added");
       return res.data.user;
     } catch (err: any) {
       toast.error(err.response?.data?.msg || "Failed to create customer");
@@ -90,7 +90,6 @@ export const fetchCustomerById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const res = await api.get(`/admin/users/${id}`);
-      console.log("Fetch Customer by ID Response:", res.data);
       return res.data;
     } catch (err: any) {
       toast.error(err.response?.data?.msg || "Failed to fetch customer");
