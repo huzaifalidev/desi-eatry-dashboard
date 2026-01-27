@@ -4,12 +4,12 @@ import { useState, useRef } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -57,7 +57,7 @@ export function BillEntryDrawer({
   const [quantity, setQuantity] = useState(1);
   const [billItems, setBillItems] = useState<any[]>([]);
 
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentTranslate = useRef(0);
 
@@ -65,28 +65,28 @@ export function BillEntryDrawer({
   const handleTouchStart = (e: React.TouchEvent) =>
     (startY.current = e.touches[0].clientY);
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!drawerRef.current) return;
+    if (!sheetRef.current) return;
     const deltaY = e.touches[0].clientY - startY.current;
     if (deltaY > 0) {
-      drawerRef.current.style.transform = `translateY(${deltaY}px)`;
+      sheetRef.current.style.transform = `translateY(${deltaY}px)`;
       currentTranslate.current = deltaY;
     }
   };
   const handleTouchEnd = () => {
-    if (!drawerRef.current) return;
-    if (currentTranslate.current > 120) onOpenChange(false);
-    drawerRef.current.style.transform = "";
+    if (!sheetRef.current) return;
+    if (currentTranslate.current > 120) {
+      onOpenChange(false);
+    }
+    sheetRef.current.style.transform = "";
     currentTranslate.current = 0;
   };
 
-  // ---------------- Add / Remove Items ----------------
   const handleAddItem = () => {
     if (!selectedMenuId) return toast.error("Please select a menu item");
     const menuItem = menuItems.find((m) => m._id === selectedMenuId);
     if (!menuItem) return;
 
     const price = selectedSize === "half" ? menuItem.half : menuItem.full;
-    const total = price * quantity;
 
     setBillItems((prev) => [
       ...prev,
@@ -98,7 +98,7 @@ export function BillEntryDrawer({
         unit: menuItem.unit,
         quantity,
         price,
-        total,
+        total: price * quantity,
       },
     ]);
     setSelectedMenuId("");
@@ -111,9 +111,8 @@ export function BillEntryDrawer({
     toast.success("Item removed");
   };
 
-  // ---------------- Save Bill using Redux ----------------
   const handleSaveBill = async () => {
-    if (billItems.length === 0) return toast.error("Please add items");
+    if (!billItems.length) return toast.error("Please add items");
 
     try {
       setIsLoading(true);
@@ -131,41 +130,43 @@ export function BillEntryDrawer({
           })),
         }),
       ).unwrap();
-      setBillItems([]);
       await dispatch(fetchCustomerById(customerId));
+      setBillItems([]);
       onOpenChange(false);
-      setIsLoading(false);
-      toast.success(`Bill for ${customerFirstName} ${customerLastName} saved`);
+      toast.success(
+        `Bill for ${customerFirstName} ${customerLastName} saved`,
+      );
     } catch (err: any) {
       toast.error(err || "Failed to save bill");
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent
-        ref={drawerRef}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        ref={sheetRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg"
-        data-vaul-drawer-direction="bottom"
       >
-        <DrawerHeader>
-          <DrawerTitle>Add New Bill</DrawerTitle>
-          <DrawerDescription>
+        <SheetHeader>
+          <SheetTitle>Add New Bill</SheetTitle>
+          <SheetDescription>
             Create a new bill for{" "}
             <strong>
               {customerFirstName} {customerLastName}
             </strong>
-          </DrawerDescription>
-        </DrawerHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <div className="space-y-6 mt-4">
           {/* Menu, Size, Qty */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Menu Item */}
+            {/* Menu */}
             <div className="space-y-2">
               <Label>Menu Item</Label>
               <Select value={selectedMenuId} onValueChange={setSelectedMenuId}>
@@ -182,17 +183,21 @@ export function BillEntryDrawer({
               </Select>
             </div>
 
-            {/* Size (hide if unit is piece) */}
+            {/* Size */}
             {(() => {
-              const menuItem = menuItems.find((m) => m._id === selectedMenuId);
-              if (!menuItem || menuItem.unit.toLowerCase() === "piece")
-                return null; // hide size
+              const menuItem = menuItems.find(
+                (m) => m._id === selectedMenuId,
+              );
+              if (!menuItem || menuItem.unit === "piece") return null;
+
               return (
                 <div className="space-y-2">
                   <Label>Size</Label>
                   <Select
                     value={selectedSize}
-                    onValueChange={(v) => setSelectedSize(v as "half" | "full")}
+                    onValueChange={(v) =>
+                      setSelectedSize(v as "half" | "full")
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -219,14 +224,12 @@ export function BillEntryDrawer({
               />
             </div>
 
-            {/* Add Button */}
             <div className="space-y-2 flex items-end">
               <Button onClick={handleAddItem} className="w-full">
                 <Plus size={16} className="mr-2" /> Add
               </Button>
             </div>
           </div>
-          {/* Bill Items Table */}
           {billItems.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <Table>
@@ -237,14 +240,21 @@ export function BillEntryDrawer({
                     <TableHead>Unit</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
+                    <TableHead className="text-center">
+                      Action
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {billItems.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="capitalize">{item.size}</TableCell>
+                      <TableCell className="font-medium">
+                        {item.name}
+                      </TableCell>
+                      <TableCell className="capitalize">
+                        {item.size}
+                      </TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell className="text-right">
@@ -254,9 +264,14 @@ export function BillEntryDrawer({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveItem(item.id)}
+                          onClick={() =>
+                            handleRemoveItem(item.id)
+                          }
                         >
-                          <Trash2 size={16} className="text-destructive" />
+                          <Trash2
+                            size={16}
+                            className="text-destructive"
+                          />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -265,7 +280,9 @@ export function BillEntryDrawer({
               </Table>
 
               <div className="bg-muted p-4 flex justify-between items-center">
-                <span className="font-semibold">Total Amount:</span>
+                <span className="font-semibold">
+                  Total Amount:
+                </span>
                 <span className="text-lg font-bold">
                   Rs{" "}
                   {billItems
@@ -275,16 +292,25 @@ export function BillEntryDrawer({
               </div>
             </div>
           )}
+
+          {/* Actions */}
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveBill} disabled={billItems.length === 0}>
+
+            <Button
+              onClick={handleSaveBill}
+              disabled={billItems.length === 0}
+            >
               {isLoading && <Spinner />} Save Bill
             </Button>
           </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -40,7 +40,7 @@ export default function LoginPage() {
       router.push('/dashboard')
     };
   }, [admin, isAuthenticated])
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
@@ -49,8 +49,6 @@ export default function LoginPage() {
     }
     try {
       await dispatch(loginAdmin({ email, password })).unwrap()
-      // Fetch admin data after login
-      await dispatch(fetchAdminData()).unwrap()
     } catch (err: any) {
       // Error handled via slice toast
     }
