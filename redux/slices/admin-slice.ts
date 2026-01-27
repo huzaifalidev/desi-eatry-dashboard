@@ -7,6 +7,8 @@ interface AdminState {
   loading: boolean;
   error: string | null;
   sidebarCollapsed: boolean;
+  isAuthenticated?: boolean;
+  theme: "light" | "dark";
 }
 
 const isClient = () => typeof window !== "undefined";
@@ -78,6 +80,8 @@ const initialState: AdminState = {
   loading: false,
   error: null,
   sidebarCollapsed: false,
+  isAuthenticated: false,
+  theme: "dark",
 };
 
 const adminSlice = createSlice({
@@ -100,10 +104,12 @@ const adminSlice = createSlice({
       .addCase(loginAdmin.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.isAuthenticated = false;
       })
       .addCase(loginAdmin.fulfilled, (state, action) => {
         state.loading = false;
         state.admin = action.payload;
+        state.isAuthenticated = true;
       })
       .addCase(loginAdmin.rejected, (state, action) => {
         state.loading = false;
@@ -118,11 +124,13 @@ const adminSlice = createSlice({
       .addCase(fetchAdminData.fulfilled, (state, action) => {
         state.loading = false;
         state.admin = action.payload;
+        state.isAuthenticated = true;
       })
       .addCase(fetchAdminData.rejected, (state, action) => {
         state.loading = false;
         state.admin = null;
         state.error = action.payload as string;
+        state.isAuthenticated = false;
       })
 
       // Logout
@@ -130,6 +138,7 @@ const adminSlice = createSlice({
         state.admin = null;
         state.loading = false;
         state.error = null;
+        state.isAuthenticated = false;
       });
   },
 });

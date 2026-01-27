@@ -108,7 +108,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Outstanding
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 {uniqueCustomersThisMonth}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Quick Billing Panel */}
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                   );
                   return (
                     <div
-                      key={bill._id}
+                      key={bill.id}
                       className="flex items-center justify-between pb-2 border-b"
                     >
                       <div>
@@ -266,7 +266,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="text-base">Recent Payments</CardTitle>
             </CardHeader>
@@ -295,9 +295,9 @@ export default function DashboardPage() {
                 })}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="text-base">Recent Purchases</CardTitle>
             </CardHeader>
@@ -321,7 +321,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         <BillEntryDrawer open={openDrawer} onOpenChange={setOpenDrawer} />

@@ -22,20 +22,17 @@ import storage from "redux-persist/lib/storage";
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["admin"], // persist only auth slice
+  whitelist: ["theme", "sidebarCollapsed"], 
 };
 
 // Wrap your auth reducer with persistReducer
 const persistedAdminReducer = persistReducer(persistConfig, adminReducer);
-const persistedMenuReducer = persistReducer(persistConfig, menuReducer);
-const persistedCustomerReducer = persistReducer(persistConfig, customerReducer);
-
 // ---------------- Configure Store ----------------
 export const store = configureStore({
   reducer: {
-    admin: persistedAdminReducer,
-    menu: persistedMenuReducer,
-    customer: persistedCustomerReducer,
+    admin: persistedAdminReducer, // ✅ persisted
+    menu: menuReducer, // 
+    customer: customerReducer, // 
     billing: billReducer,
   },
   middleware: (getDefaultMiddleware) =>
