@@ -22,7 +22,7 @@ export default function LoginPage() {
   const router = useRouter()
   const dispatch = useDispatch<any>()
 
-  const { admin, loading, error } = useSelector((state: RootState) => state.admin)
+  const { admin, loading, error, isAuthenticated } = useSelector((state: RootState) => state.admin)
 
   const [email, setEmail] = useState('admin@demo.com')
   const [password, setPassword] = useState('Admin123')
@@ -36,11 +36,10 @@ export default function LoginPage() {
 
   // Redirect after login
   useEffect(() => {
-    if (admin) {
-      toast.success(`Welcome back, ${admin.firstName}!`)
-      router.push('/dashboard')
-    }
-  }, [admin, router])
+    if (admin && isAuthenticated) {
+      window.location.href = '/dashboard'
+    };
+  }, [admin, isAuthenticated])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +47,6 @@ export default function LoginPage() {
       toast.error('Email and password are required')
       return
     }
-
     try {
       await dispatch(loginAdmin({ email, password })).unwrap()
       // Fetch admin data after login
@@ -63,7 +61,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg bg-[#fafafa] dark:bg-zinc-900 max-sm:mx-4">
         <CardHeader>
           <CardTitle>Desi Eatry</CardTitle>
-          <CardDescription>Billing & Inventory System</CardDescription>
+          <CardDescription>Food Restaurant System</CardDescription>
         </CardHeader>
 
         <CardContent>

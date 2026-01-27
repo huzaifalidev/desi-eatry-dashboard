@@ -2,54 +2,40 @@
 import axios from "axios";
 import { config } from "../config/config";
 
-const isClient = () => typeof window !== "undefined";
-
 const api = axios.create({
   baseURL: config.apiUrl,
+  withCredentials: true, // 🔥 REQUIRED FOR COOKIE AUTH
 });
 
-// Request interceptor: attach access token
+// Request interceptor — NO TOKEN HANDLING NEEDED
 api.interceptors.request.use((request) => {
-  if (isClient()) {
-    const token = localStorage.getItem("accesstoken");
-    if (token) {
-      request.headers.Authorization = `Bearer ${token}`;
-    }
-  }
   return request;
 });
 
-// Response interceptor: handle 401/403
+// Response interceptor — AUTO REFRESH TOKEN USING COOKIES
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (isClient() && error.response?.status === 403 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem("refreshtoken");
+    const isAuthRoute =
+      originalRequest.url?.includes("/admin/signin") ||
+      originalRequest.url?.includes("/admin/logout") ||
+      originalRequest.url?.includes("/admin/refresh-token");
 
-      if (!refreshToken) {
-        localStorage.removeItem("accesstoken");
-        localStorage.removeItem("refreshtoken");
-        window.location.href = "/login"; // redirect or handle logout
-        return Promise.reject(error);
-      }
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthRoute
+    ) {
+      originalRequest._retry = true;
 
       try {
-        const res = await axios.post(`${config.apiUrl}/admin/refresh-token`, {}, {
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        });
-        const newToken = res.data.accessToken;
-        localStorage.setItem("accesstoken", newToken);
-
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest); // retry the original request
-      } catch (err) {
-        localStorage.removeItem("accesstoken");
-        localStorage.removeItem("refreshtoken");
+        await api.post("/admin/refresh-token");
+        return api(originalRequest);
+      } catch (refreshError) {
         window.location.href = "/login";
-        return Promise.reject(err);
+        return Promise.reject(refreshError);
       }
     }
 

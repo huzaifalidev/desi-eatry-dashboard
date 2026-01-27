@@ -104,7 +104,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               <DropdownMenuItem
                 onClick={() => {
                   dispatch(logoutAdmin())
-                  router.push('/login')
+                  window.location.href = '/login'
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
