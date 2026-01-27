@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { toggleSidebarCollapsed } from '@/redux/slices/auth-slice'
+import { toggleSidebar } from '@/redux/slices/admin-slice'
 import { useDispatch, useSelector } from 'react-redux'
 
 const menuItems = [
@@ -74,7 +74,7 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => dispatch(toggleSidebarCollapsed())}
+                onClick={() => dispatch(toggleSidebar())}
                 className="h-8 w-8 p-0 flex items-center justify-center relative group"
               >
                 {/* Logo */}
@@ -96,7 +96,7 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => dispatch(toggleSidebarCollapsed())}
+                onClick={() => dispatch(toggleSidebar())}
                 className="hidden lg:flex"
               >
                 <ChevronLeft />
