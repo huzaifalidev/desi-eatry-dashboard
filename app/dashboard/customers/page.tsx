@@ -197,11 +197,11 @@ export default function CustomersPage() {
                   <TableRow key={customer._id} className="text-sm sm:text-base">
                     <TableCell className="truncate">{customer?.firstName} {customer?.lastName}</TableCell>
                     <TableCell className="truncate">{customer?.phone}</TableCell>
-                    <TableCell className="text-right">Rs {customer?.summary?.totalBilled?.toLocaleString() ?? 0}</TableCell>
-                    <TableCell className="text-right text-green-600 font-semibold">Rs {customer?.summary?.totalPaid?.toLocaleString() ?? 0}</TableCell>
+                    <TableCell className="text-right">Rs {customer?.summary?.totalBilled.toFixed(0).toLocaleString() ?? 0}</TableCell>
+                    <TableCell className="text-right text-green-600 font-semibold">Rs {customer?.summary?.totalPaid.toFixed(0).toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right">
                       <Badge variant={(customer?.summary?.balance ?? 0) > 0 ? 'destructive' : 'secondary'}>
-                        Rs {customer.summary?.balance?.toLocaleString() ?? 0}
+                        Rs {customer.summary?.balance.toFixed(0).toLocaleString() ?? 0}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center flex flex-wrap sm:flex-nowrap justify-center gap-1">
