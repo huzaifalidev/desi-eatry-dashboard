@@ -23,6 +23,7 @@ export const loginAdmin = createAsyncThunk(
     try {
       const res = await api.post("/admin/signin", { email, password });
       toast.success(`Welcome back, ${res.data.admin.firstName} ${res.data.admin.lastName} !`)
+      window.location.href = '/dashboard';
       return res.data.admin;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(

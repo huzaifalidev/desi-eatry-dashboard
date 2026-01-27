@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DropdownMenuLabel } from '@radix-ui/react-dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage , } from './ui/avatar'
 import { useDispatch, useSelector } from 'react-redux'
-import { RootState,AppDispatch } from '@/redux/store/store'
+import { RootState, AppDispatch } from '@/redux/store/store'
 import { logoutAdmin } from '@/redux/slices/admin-slice'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
@@ -61,11 +61,16 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 className="relative h-8 w-8 border rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/diverse-user-avatars.png" alt="User" />
+                  <AvatarImage
+                    src="https://github.com/evilrabbit.png"
+                    alt={user ? `${user.firstName} ${user.lastName}` : 'User Avatar'}
+                    className=""
+                  />
                   <AvatarFallback>
                     {user?.firstName[0]}
                     {user?.lastName[0]}
                   </AvatarFallback>
+                  <AvatarBadge className="bg-green-500  animate-pulse"  />
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

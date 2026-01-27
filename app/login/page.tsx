@@ -37,10 +37,10 @@ export default function LoginPage() {
   // Redirect after login
   useEffect(() => {
     if (admin && isAuthenticated) {
-      window.location.href = '/dashboard'
+      router.push('/dashboard')
     };
   }, [admin, isAuthenticated])
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
