@@ -1,7 +1,6 @@
 // src/features/admin/adminSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
-import { config } from '../../config/config';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import api from "@/lib/axios-instance";
 
 interface AdminState {
   admin: any | null;
@@ -10,58 +9,30 @@ interface AdminState {
   sidebarCollapsed: boolean;
 }
 
-const isClient = () => typeof window !== 'undefined';
+const isClient = () => typeof window !== "undefined";
 
 /* ===========================
    ADMIN LOGIN
 =========================== */
 export const loginAdmin = createAsyncThunk(
-  'admin/loginAdmin',
+  "admin/loginAdmin",
   async (
     { email, password }: { email: string; password: string },
     thunkAPI
   ) => {
     try {
-      const res = await axios.post(`${config.apiUrl}/admin/signin`, { email, password });
+      const res = await api.post("/admin/signin", { email, password });
 
       if (isClient()) {
-        localStorage.setItem('accesstoken', res.data.accessToken);
-        localStorage.setItem('refreshtoken', res.data.refreshToken);
+        localStorage.setItem("accesstoken", res.data.accessToken);
+        localStorage.setItem("refreshtoken", res.data.refreshToken);
       }
 
       return res.data.admin;
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Login failed');
-    }
-  }
-);
-
-/* ===========================
-   REFRESH ACCESS TOKEN
-=========================== */
-export const refreshAdminToken = createAsyncThunk(
-  'admin/refreshAdminToken',
-  async (_, thunkAPI) => {
-    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser');
-
-    const refreshToken = localStorage.getItem('refreshtoken');
-    if (!refreshToken) {
-      thunkAPI.dispatch(logoutAdmin());
-      return thunkAPI.rejectWithValue('No refresh token');
-    }
-
-    try {
-      const res = await axios.post(
-        `${config.apiUrl}/admin/refresh-token`,
-        {},
-        { headers: { Authorization: `Bearer ${refreshToken}` } }
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.msg || "Login failed"
       );
-      const newAccessToken = res.data.accessToken;
-      localStorage.setItem('accesstoken', newAccessToken);
-      return newAccessToken;
-    } catch (err: any) {
-      thunkAPI.dispatch(logoutAdmin());
-      return thunkAPI.rejectWithValue('Session expired');
     }
   }
 );
@@ -70,31 +41,15 @@ export const refreshAdminToken = createAsyncThunk(
    FETCH LOGGED-IN ADMIN
 =========================== */
 export const fetchAdminData = createAsyncThunk(
-  'admin/fetchAdminData',
+  "admin/fetchAdminData",
   async (_, thunkAPI) => {
-    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser');
-
-    const accessToken = localStorage.getItem('accesstoken');
-    if (!accessToken) return thunkAPI.rejectWithValue('No access token');
-
     try {
-      const res = await axios.get(
-        `${config.apiUrl}/admin/me`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      const res = await api.get("/admin/me");
       return res.data.admin;
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        // Try refreshing token
-        const newToken = await thunkAPI.dispatch(refreshAdminToken()).unwrap();
-
-        const retry = await axios.get(
-          `${config.apiUrl}/admin/me`,
-          { headers: { Authorization: `Bearer ${newToken}` } }
-        );
-        return retry.data.admin;
-      }
-      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Fetch failed');
+      return thunkAPI.rejectWithValue(
+        err?.response?.data?.msg || "Fetch failed"
+      );
     }
   }
 );
@@ -102,20 +57,17 @@ export const fetchAdminData = createAsyncThunk(
 /* ===========================
    LOGOUT ADMIN
 =========================== */
-export const logoutAdmin = createAsyncThunk('admin/logoutAdmin', async () => {
+export const logoutAdmin = createAsyncThunk("admin/logoutAdmin", async () => {
   if (!isClient()) return;
 
-  const accessToken = localStorage.getItem('accesstoken');
-
   try {
-    if (accessToken) {
-      await axios.post(`${config.apiUrl}/admin/logout`, {}, { headers: { Authorization: `Bearer ${accessToken}` } });
-    }
+    await api.post("/admin/logout");
   } catch (err) {
-    console.error('Logout error', err);
+    console.error("Logout error", err);
   }
-  localStorage.removeItem('accesstoken');
-  localStorage.removeItem('refreshtoken');
+
+  localStorage.removeItem("accesstoken");
+  localStorage.removeItem("refreshtoken");
 });
 
 /* ===========================
@@ -129,13 +81,16 @@ const initialState: AdminState = {
 };
 
 const adminSlice = createSlice({
-  name: 'admin',
+  name: "admin",
   initialState,
   reducers: {
     toggleSidebar(state) {
       state.sidebarCollapsed = !state.sidebarCollapsed;
       if (isClient()) {
-        localStorage.setItem('sidebarCollapsed', state.sidebarCollapsed.toString());
+        localStorage.setItem(
+          "sidebarCollapsed",
+          state.sidebarCollapsed.toString()
+        );
       }
     },
   },

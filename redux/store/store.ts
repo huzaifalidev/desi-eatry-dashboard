@@ -1,9 +1,10 @@
 // src/store.ts
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer from '@/redux/slices/auth-slice';
-import menuReducer from '@/redux/slices/menu-slice';
-import customerReducer from '@/redux/slices/customer-slice';
-import adminReducer from '@/redux/slices/admin-slice';
+import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "@/redux/slices/auth-slice";
+import menuReducer from "@/redux/slices/menu-slice";
+import customerReducer from "@/redux/slices/customer-slice";
+import adminReducer from "@/redux/slices/admin-slice";
+import billReducer from "@/redux/slices/bill-slice";
 
 import {
   persistStore,
@@ -14,14 +15,14 @@ import {
   PERSIST,
   PURGE,
   REGISTER,
-} from 'redux-persist';
-import storage from 'redux-persist/lib/storage'; 
+} from "redux-persist";
+import storage from "redux-persist/lib/storage";
 
 // ---------------- Persist Config ----------------
 const persistConfig = {
-  key: 'root',
+  key: "root",
   storage,
-  whitelist: ['admin',], // persist only auth slice
+  whitelist: ["admin"], // persist only auth slice
 };
 
 // Wrap your auth reducer with persistReducer
@@ -35,6 +36,7 @@ export const store = configureStore({
     admin: persistedAdminReducer,
     menu: persistedMenuReducer,
     customer: persistedCustomerReducer,
+    billing: billReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

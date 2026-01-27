@@ -11,7 +11,9 @@ export interface Customer {
         totalBilled: number
         totalPaid: number
         balance: number
-    }
+    },
+    bills: Bill[]
+    payments: Payment[]
 }
 
 export type Size = 'half' | 'full'

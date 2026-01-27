@@ -1,8 +1,7 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import axios from 'axios'
-import {config} from '@/config/config'
-import { refreshAdminToken } from './admin-slice'
-import { isClient } from '@/lib/is-client'
+'use client'
+
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import api from '@/lib/axios-instance'
 
 export interface Payment {
   _id: string
@@ -27,14 +26,6 @@ const initialState: PaymentState = {
 }
 
 /* ======================================================
-   Helpers
-====================================================== */
-const authHeader = () => {
-  const token = localStorage.getItem('accesstoken')
-  return { Authorization: `Bearer ${token}` }
-}
-
-/* ======================================================
    CREATE PAYMENT
 ====================================================== */
 export const createPayment = createAsyncThunk(
@@ -48,39 +39,17 @@ export const createPayment = createAsyncThunk(
       note?: string
       date?: Date
     },
-    thunkAPI,
+    thunkAPI
   ) => {
-    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
-
-    const token = localStorage.getItem('accesstoken')
-    if (!token) return thunkAPI.rejectWithValue('No access token')
-
     try {
-      const res = await axios.post(
-        `${config.apiUrl}/admin/payment`,
-        data,
-        { headers: authHeader() },
-      )
+      const res = await api.post('/admin/payment', data)
       return res.data.payment
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        const newToken = await thunkAPI
-          .dispatch(refreshAdminToken())
-          .unwrap()
-
-        const retry = await axios.post(
-          `${config.apiUrl}/admin/payment`,
-          data,
-          { headers: { Authorization: `Bearer ${newToken}` } },
-        )
-        return retry.data.payment
-      }
-
       return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to create payment',
+        err?.response?.data?.msg || 'Failed to create payment'
       )
     }
-  },
+  }
 )
 
 /* ======================================================
@@ -89,35 +58,15 @@ export const createPayment = createAsyncThunk(
 export const fetchAllPayments = createAsyncThunk(
   'payment/fetchAllPayments',
   async (_, thunkAPI) => {
-    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
-
-    const token = localStorage.getItem('accesstoken')
-    if (!token) return thunkAPI.rejectWithValue('No access token')
-
     try {
-      const res = await axios.get(
-        `${config.apiUrl}/admin/payment`,
-        { headers: authHeader() },
-      )
+      const res = await api.get('/admin/payment')
       return res.data.payments
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        const newToken = await thunkAPI
-          .dispatch(refreshAdminToken())
-          .unwrap()
-
-        const retry = await axios.get(
-          `${config.apiUrl}/admin/payment`,
-          { headers: { Authorization: `Bearer ${newToken}` } },
-        )
-        return retry.data.payments
-      }
-
       return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to fetch payments',
+        err?.response?.data?.msg || 'Failed to fetch payments'
       )
     }
-  },
+  }
 )
 
 /* ======================================================
@@ -126,35 +75,15 @@ export const fetchAllPayments = createAsyncThunk(
 export const fetchPaymentsByCustomer = createAsyncThunk(
   'payment/fetchPaymentsByCustomer',
   async (customerId: string, thunkAPI) => {
-    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
-
-    const token = localStorage.getItem('accesstoken')
-    if (!token) return thunkAPI.rejectWithValue('No access token')
-
     try {
-      const res = await axios.get(
-        `${config.apiUrl}/admin/payment/customer/${customerId}`,
-        { headers: authHeader() },
-      )
+      const res = await api.get(`/admin/payment/customer/${customerId}`)
       return res.data.payments
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        const newToken = await thunkAPI
-          .dispatch(refreshAdminToken())
-          .unwrap()
-
-        const retry = await axios.get(
-          `${config.apiUrl}/admin/payment/customer/${customerId}`,
-          { headers: { Authorization: `Bearer ${newToken}` } },
-        )
-        return retry.data.payments
-      }
-
       return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to fetch customer payments',
+        err?.response?.data?.msg || 'Failed to fetch customer payments'
       )
     }
-  },
+  }
 )
 
 /* ======================================================
@@ -163,35 +92,15 @@ export const fetchPaymentsByCustomer = createAsyncThunk(
 export const deletePayment = createAsyncThunk(
   'payment/deletePayment',
   async (paymentId: string, thunkAPI) => {
-    if (!isClient()) return thunkAPI.rejectWithValue('Not in browser')
-
-    const token = localStorage.getItem('accesstoken')
-    if (!token) return thunkAPI.rejectWithValue('No access token')
-
     try {
-      await axios.delete(
-        `${config.apiUrl}/admin/payment/${paymentId}`,
-        { headers: authHeader() },
-      )
+      await api.delete(`/admin/payment/${paymentId}`)
       return paymentId
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        const newToken = await thunkAPI
-          .dispatch(refreshAdminToken())
-          .unwrap()
-
-        await axios.delete(
-          `${config.apiUrl}/admin/payment/${paymentId}`,
-          { headers: { Authorization: `Bearer ${newToken}` } },
-        )
-        return paymentId
-      }
-
       return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to delete payment',
+        err?.response?.data?.msg || 'Failed to delete payment'
       )
     }
-  },
+  }
 )
 
 /* ======================================================
@@ -203,16 +112,18 @@ const paymentSlice = createSlice({
   reducers: {
     clearPayments: (state) => {
       state.payments = []
+      state.loading = false
+      state.error = null
     },
   },
   extraReducers: (builder) => {
     builder
-
       // CREATE
       .addCase(createPayment.pending, (state) => {
         state.loading = true
+        state.error = null
       })
-      .addCase(createPayment.fulfilled, (state, action) => {
+      .addCase(createPayment.fulfilled, (state, action: PayloadAction<Payment>) => {
         state.loading = false
         state.payments.unshift(action.payload)
       })
@@ -224,8 +135,9 @@ const paymentSlice = createSlice({
       // FETCH ALL
       .addCase(fetchAllPayments.pending, (state) => {
         state.loading = true
+        state.error = null
       })
-      .addCase(fetchAllPayments.fulfilled, (state, action) => {
+      .addCase(fetchAllPayments.fulfilled, (state, action: PayloadAction<Payment[]>) => {
         state.loading = false
         state.payments = action.payload
       })
@@ -235,16 +147,31 @@ const paymentSlice = createSlice({
       })
 
       // FETCH BY CUSTOMER
-      .addCase(fetchPaymentsByCustomer.fulfilled, (state, action) => {
+      .addCase(fetchPaymentsByCustomer.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchPaymentsByCustomer.fulfilled, (state, action: PayloadAction<Payment[]>) => {
         state.loading = false
         state.payments = action.payload
       })
+      .addCase(fetchPaymentsByCustomer.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
 
       // DELETE
-      .addCase(deletePayment.fulfilled, (state, action) => {
-        state.payments = state.payments.filter(
-          (p) => p._id !== action.payload,
-        )
+      .addCase(deletePayment.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(deletePayment.fulfilled, (state, action: PayloadAction<string>) => {
+        state.loading = false
+        state.payments = state.payments.filter((p) => p._id !== action.payload)
+      })
+      .addCase(deletePayment.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
       })
   },
 })
