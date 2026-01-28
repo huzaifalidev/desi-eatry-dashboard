@@ -4,12 +4,13 @@ import { useState, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { Button } from '@/components/ui/button'
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from '@/components/ui/drawer'
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -43,7 +44,7 @@ export function PaymentEntryDrawer({
   const [isLoading, setIsLoading] = useState(false)
 
   // ---------- swipe to close ----------
-  const drawerRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
 
@@ -51,18 +52,18 @@ export function PaymentEntryDrawer({
     (startY.current = e.touches[0].clientY)
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!drawerRef.current) return
+    if (!sheetRef.current) return
     const deltaY = e.touches[0].clientY - startY.current
     if (deltaY > 0) {
-      drawerRef.current.style.transform = `translateY(${deltaY}px)`
+      sheetRef.current.style.transform = `translateY(${deltaY}px)`
       currentTranslate.current = deltaY
     }
   }
 
   const handleTouchEnd = () => {
-    if (!drawerRef.current) return
+    if (!sheetRef.current) return
     if (currentTranslate.current > 120) onOpenChange(false)
-    drawerRef.current.style.transform = ''
+    sheetRef.current.style.transform = ''
     currentTranslate.current = 0
   }
 
@@ -99,53 +100,57 @@ export function PaymentEntryDrawer({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent
-        ref={drawerRef}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        ref={sheetRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        data-vaul-drawer-direction="bottom"
-        className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg"
+        side="bottom"
+        className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg pb-[env(safe-area-inset-bottom)]"
       >
-        <DrawerHeader>
-          <DrawerTitle>Add Payment</DrawerTitle>
-          <DrawerDescription>
-            Record a payment for this customer
-          </DrawerDescription>
-        </DrawerHeader>
+        {/* Drawer handle */}
+        <div className="flex items-center justify-center mb-0">
+          <div className="w-12 h-1.5 bg-zinc-300 rounded-full" />
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
-          <div className="space-y-2">
-            <Label>Amount (Rs)</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
+        <SheetHeader className="mb-4 flex items-center justify-between">
+          <SheetTitle>Add Payment</SheetTitle>
+          <SheetDescription>Record a payment for this customer</SheetDescription>
+        </SheetHeader>
 
-          <div className="space-y-2">
-            <Label>Payment Method</Label>
-            <Select
-              value={method}
-              onValueChange={setMethod}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="online">Online
-                </SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-              </SelectContent>
-            </Select>
+        <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Amount (Rs)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <Select
+                value={method}
+                onValueChange={setMethod}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -162,7 +167,7 @@ export function PaymentEntryDrawer({
             </Button>
           </div>
         </form>
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   )
 }

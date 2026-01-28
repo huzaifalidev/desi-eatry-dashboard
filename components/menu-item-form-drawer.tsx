@@ -5,7 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from './ui/drawer'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from './ui/sheet'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Spinner } from './ui/spinner'
 
@@ -38,7 +44,7 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
   const [status, setStatus] = useState('active')
   const [isLoading, setIsLoading] = useState(false)
 
-  const drawerRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
 
@@ -65,20 +71,20 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!drawerRef.current) return
+    if (!sheetRef.current) return
     const deltaY = e.touches[0].clientY - startY.current
     if (deltaY > 0) {
-      drawerRef.current.style.transform = `translateY(${deltaY}px)`
+      sheetRef.current.style.transform = `translateY(${deltaY}px)`
       currentTranslate.current = deltaY
     }
   }
 
   const handleTouchEnd = () => {
-    if (!drawerRef.current) return
+    if (!sheetRef.current) return
     if (currentTranslate.current > 100) {
       onOpenChange(false)
     }
-    drawerRef.current.style.transform = ''
+    sheetRef.current.style.transform = ''
     currentTranslate.current = 0
   }
 
@@ -92,7 +98,6 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
     setIsLoading(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 300)) // simulate delay
-
       onSubmit({
         id: item?._id,
         name,
@@ -109,26 +114,28 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
     }
   }
 
+  const showHalfPrice = unit === 'plate' || unit === 'serving'
+
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent
-        ref={drawerRef}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        ref={sheetRef}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="
-  px-4 py-6 rounded-t-lg
-  max-h-[90svh] overflow-y-auto
-  md:max-h-none md:overflow-visible
-  pb-[env(safe-area-inset-bottom)] md:pb-6
-"
+        className="max-h-[90vh] overflow-y-auto px-4 py-6 rounded-t-lg pb-[env(safe-area-inset-bottom)]"
       >
-        <DrawerHeader>
-          <DrawerTitle>{item ? 'Edit Menu Item' : 'Add New Menu Item'}</DrawerTitle>
-          <DrawerDescription>
+        {/* Handle icon */}
+        <div className="flex items-center justify-center mb-0">
+          <div className="w-12 h-1.5 bg-zinc-300 rounded-full" />
+        </div>
+        <SheetHeader className="mb-0 flex items-center justify-between">
+          <SheetTitle>{item ? 'Edit Menu Item' : 'Add New Menu Item'}</SheetTitle>
+          <SheetDescription>
             {item ? 'Update menu item details' : 'Create a new menu item'}
-          </DrawerDescription>
-        </DrawerHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
@@ -141,68 +148,84 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
               disabled={isLoading}
             />
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="half">Half Price (Rs)</Label>
-              <Input
-                id="half"
-                type="number"
-                placeholder="0"
-                value={half}
-                onChange={(e) => setHalf(e.target.value)}
-                disabled={isLoading}
-                step="0.01"
-                min="0"
-              />
+              <Label htmlFor="unit">Unit</Label>
+              <Select value={unit} onValueChange={setUnit} disabled={isLoading}>
+                <SelectTrigger id="unit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="plate">Plate</SelectItem>
+                  <SelectItem value="piece">Piece</SelectItem>
+                  <SelectItem value="serving">Serving</SelectItem>
+                  <SelectItem value="cup">Cup</SelectItem>
+                  <SelectItem value="box">Box</SelectItem>
+                  <SelectItem value="bottle">Bottle</SelectItem>
+                  <SelectItem value="glass">Glass</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={setStatus} disabled={isLoading}>
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Prices row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {showHalfPrice && (
+              <div className="space-y-2">
+                <Label htmlFor="half">Half Price (Rs)</Label>
+                <Input
+                  id="half"
+                  type="text" // allow free typing
+                  placeholder="0"
+                  value={half}
+                  onChange={(e) => {
+                    // allow only digits and a single decimal
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    const parts = val.split('.');
+                    if (parts.length > 2) {
+                      setHalf(parts[0] + '.' + parts[1]); // ignore extra dots
+                    } else {
+                      setHalf(val);
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="full">Full Price (Rs)</Label>
               <Input
                 id="full"
-                type="number"
+                type="text" // allow free typing
                 placeholder="0"
                 value={full}
-                onChange={(e) => setFull(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                  const parts = val.split('.');
+                  if (parts.length > 2) {
+                    setFull(parts[0] + '.' + parts[1]);
+                  } else {
+                    setFull(val);
+                  }
+                }}
                 disabled={isLoading}
-                step="0.01"
-                min="0"
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="unit">Unit</Label>
-            <Select value={unit} onValueChange={setUnit} disabled={isLoading}>
-              <SelectTrigger id="unit">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="plate">Plate</SelectItem>
-                <SelectItem value="piece">Piece</SelectItem>
-                <SelectItem value="serving">Serving</SelectItem>
-                <SelectItem value="cup">Cup</SelectItem>
-                <SelectItem value="box">Box</SelectItem>
-                <SelectItem value="bottle">Bottle</SelectItem>
-                <SelectItem value="glass">Glass</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={setStatus} disabled={isLoading}>
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="flex gap-2 justify-end mt-4">
             <Button
               type="button"
@@ -217,7 +240,7 @@ export function MenuItemFormDrawer({ open, onOpenChange, item, onSubmit }: MenuI
             </Button>
           </div>
         </form>
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   )
 }

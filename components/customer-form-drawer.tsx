@@ -8,14 +8,14 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from './ui/drawer'
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from './ui/sheet' // <-- updated import
 import { Spinner } from './ui/spinner'
-import { mockCustomers } from '@/lib/mock-data'
 import { Customer } from '@/lib/types'
 
 interface CustomerFormDrawerProps {
@@ -37,23 +37,22 @@ export function CustomerFormDrawer({
   const [address, setAddress] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const drawerRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
 
   // Initialize form when customer changes
   useEffect(() => {
     if (customer) {
-      setFirstName(customer?.firstName || '')
-      setLastName(customer?.lastName || '')
-      setPhone(customer?.phone || '')
-      setAddress(customer?.address || '')
+      setFirstName(customer.firstName || '')
+      setLastName(customer.lastName || '')
+      setPhone(customer.phone || '')
+      setAddress(customer.address || '')
     } else {
       setFirstName('')
       setLastName('')
       setPhone('')
       setAddress('')
-
     }
   }, [customer])
 
@@ -63,20 +62,20 @@ export function CustomerFormDrawer({
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!drawerRef.current) return
+    if (!sheetRef.current) return
     const deltaY = e.touches[0].clientY - startY.current
     if (deltaY > 0) {
-      drawerRef.current.style.transform = `translateY(${deltaY}px)`
+      sheetRef.current.style.transform = `translateY(${deltaY}px)`
       currentTranslate.current = deltaY
     }
   }
 
   const handleTouchEnd = () => {
-    if (!drawerRef.current) return
+    if (!sheetRef.current) return
     if (currentTranslate.current > 100) {
       onOpenChange(false)
     }
-    drawerRef.current.style.transform = ''
+    sheetRef.current.style.transform = ''
     currentTranslate.current = 0
   }
 
@@ -92,7 +91,6 @@ export function CustomerFormDrawer({
     try {
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      // Build customer object (use existing id if editing)
       const customerToSave: Partial<Customer> = {
         _id: customer?._id,
         firstName,
@@ -102,7 +100,8 @@ export function CustomerFormDrawer({
       }
       onSave(customerToSave)
       onOpenChange(false)
-      //setForm fields cleared in useEffect when drawer closes
+
+      // Clear form fields
       setFirstName('')
       setLastName('')
       setPhone('')
@@ -125,74 +124,83 @@ export function CustomerFormDrawer({
         </Button>
       )}
 
-      {/* Drawer */}
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent
-          ref={drawerRef}
+      {/* Sheet */}
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          ref={sheetRef}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          side="bottom"
           className="
-    px-4 py-6 rounded-t-lg
-    md:max-h-none md:overflow-visible
-    max-h-[90svh] overflow-y-auto
-    pb-[env(safe-area-inset-bottom)]
-  "
-          data-vaul-drawer-direction="bottom"
+            px-4 py-6 rounded-t-lg
+            md:max-h-none md:overflow-visible
+            max-h-[90svh] overflow-y-auto
+            pb-[env(safe-area-inset-bottom)]
+          "
         >
-
-
-          <DrawerHeader>
-            <DrawerTitle>{customer ? 'Update Customer' : 'Add New Customer'}</DrawerTitle>
-            <DrawerDescription>
+          <div className="flex items-center justify-center mb-0">
+            <div className="w-30 h-2.5 dark:bg-zinc-800 rounded-full" />
+          </div>
+          <SheetHeader className='flex items-center justify-center mt-0 mb-4'>
+            <SheetTitle>{customer ? 'Update Customer' : 'Add New Customer'}</SheetTitle>
+            <SheetDescription>
               {customer ? 'Update customer information' : 'Create a new customer record'}
-            </DrawerDescription>
-          </DrawerHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                placeholder="e.g., Huzaifa"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                placeholder="e.g., Ali"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                disabled={isLoading}
-              />
+            {/* First Name & Last Name in one row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="e.g., Huzaifa"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="e.g., Ali"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Customer Address</Label>
-              <Input
-                id="address"
-                placeholder="e.g., Flat 4, Building 12, Street 34, City"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                disabled={isLoading}
-              />
+            {/* Address & Phone in one row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Customer Address</Label>
+                <Input
+                  id="address"
+                  placeholder="e.g., Flat 4, Building 12, Street 34, City"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  placeholder="e.g., +92 300 1234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                placeholder="e.g., +92 300 1234567"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-
+            {/* Buttons */}
             <div className="flex gap-2 justify-end mt-4">
               <Button
                 type="button"
@@ -207,8 +215,8 @@ export function CustomerFormDrawer({
               </Button>
             </div>
           </form>
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     </>
   )
 }
