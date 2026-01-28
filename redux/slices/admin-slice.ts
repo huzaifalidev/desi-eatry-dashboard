@@ -73,12 +73,13 @@ export const logoutAdmin = createAsyncThunk(
     try {
       await api.post("/admin/logout");
     } catch (_) { }
-
-    // ✅ CLEAR TOKENS ALWAYS
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+    }
   }
 );
+
 
 /* ===========================
   SLICE
@@ -104,19 +105,18 @@ const adminSlice = createSlice({
   reducers: {
     toggleSidebar(state) {
       state.sidebarCollapsed = !state.sidebarCollapsed;
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "sidebarCollapsed",
-          state.sidebarCollapsed.toString()
-        );
-      }
     },
 
-    setTheme(state, action: { payload: ThemeMode }) {
+    setTheme(state, action) {
       state.theme = action.payload;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("theme", action.payload);
-      }
+      localStorage.setItem("theme", action.payload);
+    },
+
+    clearAuth(state) {
+      state.admin = null;
+      state.isAuthenticated = false;
+      state.loading = false;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -162,5 +162,5 @@ const adminSlice = createSlice({
   },
 });
 
-export const { toggleSidebar,setTheme } = adminSlice.actions;
+export const { toggleSidebar, setTheme, clearAuth } = adminSlice.actions;
 export default adminSlice.reducer;

@@ -21,12 +21,18 @@ import {
 } from './ui/avatar'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState, AppDispatch } from '@/redux/store/store'
-import { logoutAdmin, setTheme as setReduxTheme } from '@/redux/slices/admin-slice'
+import { clearAuth, logoutAdmin, setTheme as setReduxTheme } from '@/redux/slices/admin-slice'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
-
+  const logout = () => {
+    dispatch(clearAuth());
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    window.location.replace("/login");
+    dispatch(logoutAdmin());
+  };
   // next-themes
   const { setTheme, resolvedTheme } = useTheme()
 
@@ -140,8 +146,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
               <DropdownMenuItem
                 onClick={() => {
-                  dispatch(logoutAdmin())
-                  window.location.href = '/login'
+                  logout()
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
