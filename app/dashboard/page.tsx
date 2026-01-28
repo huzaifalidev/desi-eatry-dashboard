@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,10 +29,13 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { fetchMenuItems } from "@/redux/slices/menu-slice";
+import { fetchAllCustomers } from "@/redux/slices/customer-slice";
+import { useAppDispatch } from "@/hooks/redux-hooks";
 
 export default function DashboardPage() {
   const [openDrawer, setOpenDrawer] = useState(false);
-
+  const dispatch = useAppDispatch();
   // Calculate KPIs
   const totalCustomers = mockCustomers.length;
   const totalPaid = mockPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -49,66 +52,74 @@ export default function DashboardPage() {
   const uniqueCustomersThisMonth = new Set(mockBills.map((b) => b.customerId))
     .size;
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await dispatch(fetchMenuItems()).unwrap();
+      await dispatch(fetchAllCustomers()).unwrap();
+    };
+    fetchData();
+  }, [])
+
   return (
-      <div className="p-6 space-y-6">
-        {/* KPI Cards */}
-        <div className="flex flex-col justify-between gap-1">
-          <h1 className="text-3xl font-bold tracking-tight text-pretty">
-            Dashboard
-          </h1>
-          <div className="text-muted-foreground ">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                  <BreadcrumbSeparator />
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <p className="text-muted-foreground">
-            Here&apos;s a summary of your business.
-          </p>
+    <div className="p-6 space-y-6">
+      {/* KPI Cards */}
+      <div className="flex flex-col justify-between gap-1">
+        <h1 className="text-3xl font-bold tracking-tight text-pretty">
+          Dashboard
+        </h1>
+        <div className="text-muted-foreground ">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                <BreadcrumbSeparator />
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Customers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalCustomers}</div>
-            </CardContent>
-          </Card>
+        <p className="text-muted-foreground">
+          Here&apos;s a summary of your business.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Customers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCustomers}</div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Billed
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                Rs {totalBilled.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Billed
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              Rs {totalBilled.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Paid
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                Rs {totalPaid.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Paid
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              Rs {totalPaid.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* <Card>
+        {/* <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Outstanding
@@ -168,105 +179,105 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card> */}
-        </div>
+      </div>
 
-        {/* Quick Billing Panel */}
+      {/* Quick Billing Panel */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Quick Billing</CardTitle>
+            <Button onClick={() => setOpenDrawer(true)} size="sm">
+              <Plus size={16} className="mr-2" />
+              Add Bill
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Last Bill</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockCustomers.map((customer) => {
+                  const lastBill = mockBills
+                    .filter((b) => b.customerId === customer._id)
+                    .sort(
+                      (a, b) =>
+                        new Date(b.date).getTime() -
+                        new Date(a.date).getTime(),
+                    )[0];
+
+                  return (
+                    <TableRow key={customer._id}>
+                      <TableCell className="font-medium">
+                        {customer.firstName} {customer.lastName}{" "}
+                      </TableCell>
+                      <TableCell>{lastBill?.date || "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={
+                            customer.balance > 0
+                              ? "text-destructive font-semibold"
+                              : ""
+                          }
+                        >
+                          Rs {customer.balance.toLocaleString()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button size="sm" variant="outline">
+                          <Plus size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Quick Billing</CardTitle>
-              <Button onClick={() => setOpenDrawer(true)} size="sm">
-                <Plus size={16} className="mr-2" />
-                Add Bill
-              </Button>
-            </div>
+            <CardTitle className="text-base">Recent Bills</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Last Bill</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockCustomers.map((customer) => {
-                    const lastBill = mockBills
-                      .filter((b) => b.customerId === customer._id)
-                      .sort(
-                        (a, b) =>
-                          new Date(b.date).getTime() -
-                          new Date(a.date).getTime(),
-                      )[0];
-
-                    return (
-                      <TableRow key={customer._id}>
-                        <TableCell className="font-medium">
-                          {customer.firstName} {customer.lastName}{" "}
-                        </TableCell>
-                        <TableCell>{lastBill?.date || "N/A"}</TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={
-                              customer.balance > 0
-                                ? "text-destructive font-semibold"
-                                : ""
-                            }
-                          >
-                            Rs {customer.balance.toLocaleString()}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button size="sm" variant="outline">
-                            <Plus size={16} />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              {mockBills.slice(0, 3).map((bill) => {
+                const customer = mockCustomers.find(
+                  (c) => c._id === bill.customerId,
+                );
+                return (
+                  <div
+                    key={bill.id}
+                    className="flex items-center justify-between pb-2 border-b"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{customer?.firstName} {customer?.lastName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bill.date}
+                      </p>
+                    </div>
+                    <p className="font-semibold">
+                      Rs {bill.total.toLocaleString()}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent Bills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockBills.slice(0, 3).map((bill) => {
-                  const customer = mockCustomers.find(
-                    (c) => c._id === bill.customerId,
-                  );
-                  return (
-                    <div
-                      key={bill.id}
-                      className="flex items-center justify-between pb-2 border-b"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{customer?.firstName} {customer?.lastName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {bill.date}
-                        </p>
-                      </div>
-                      <p className="font-semibold">
-                        Rs {bill.total.toLocaleString()}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* <Card>
+        {/* <Card>
             <CardHeader>
               <CardTitle className="text-base">Recent Payments</CardTitle>
             </CardHeader>
@@ -297,7 +308,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card> */}
 
-          {/* <Card>
+        {/* <Card>
             <CardHeader>
               <CardTitle className="text-base">Recent Purchases</CardTitle>
             </CardHeader>
@@ -322,15 +333,15 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card> */}
-        </div>
-
-        <BillEntryDrawer
-          open={openDrawer}
-          onOpenChange={setOpenDrawer}
-          customerId=""
-          customerFirstName=""
-          customerLastName=""
-        />
       </div>
+
+      <BillEntryDrawer
+        open={openDrawer}
+        onOpenChange={setOpenDrawer}
+        customerId=""
+        customerFirstName=""
+        customerLastName=""
+      />
+    </div>
   );
 }

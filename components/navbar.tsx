@@ -97,11 +97,11 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                         : 'User Avatar'
                     }
                   />
+                  <AvatarBadge className="bg-green-400 animate-pulse" />
                   <AvatarFallback>
                     {user?.firstName?.[0]}
                     {user?.lastName?.[0]}
                   </AvatarFallback>
-                  <AvatarBadge className="bg-green-500 animate-pulse" />
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

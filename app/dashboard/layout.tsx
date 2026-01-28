@@ -26,8 +26,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const checkAuth = async () => {
       try {
         await dispatch(fetchAdminData()).unwrap();
-        await dispatch(fetchMenuItems()).unwrap();
-        await dispatch(fetchAllCustomers()).unwrap();
       } catch {
         router.replace("/login");
       }
