@@ -37,6 +37,7 @@ export default function LoginPage() {
   // Redirect after login
   useEffect(() => {
     if (admin && isAuthenticated) {
+      console.log('Redirecting to dashboard...',admin,isAuthenticated)
       router.push('/dashboard')
     };
   }, [admin, isAuthenticated])
