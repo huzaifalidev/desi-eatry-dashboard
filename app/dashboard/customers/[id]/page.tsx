@@ -22,7 +22,7 @@ import { WhatsAppInvoiceDialog } from "@/components/whatsapp-invoice-dialog";
 import { toast } from "sonner";
 
 import { fetchCustomerById } from "@/redux/slices/customer-slice";
-import type { Customer, Payments, Bills, BillItem } from "@/lib/types";
+import type { Customer, Payment, Bill, BillItem } from "@/lib/types";
 import { RootState } from "@/redux/store/store";
 export default function SingleCustomerPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,8 +35,8 @@ export default function SingleCustomerPage() {
     error,
   } = useSelector((state: RootState) => state.customer);
   const customer: Customer | null = customerData?.user ?? null;
-  const bills: Bills[] = customerData?.bills ?? [];
-  const payments: Payments[] = customerData?.payments ?? [];
+  const bills: Bill[] = customerData?.bills ?? [];
+  const payments: Payment[] = customerData?.payments ?? [];
 
   const [openBillDrawer, setOpenBillDrawer] = useState(false);
   const [openPaymentDrawer, setOpenPaymentDrawer] = useState(false);
