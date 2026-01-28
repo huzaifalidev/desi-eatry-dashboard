@@ -40,7 +40,7 @@ const salesData = [
 ]
 
 const customerData = mockCustomers.map((c) => ({
-  name: c.name,
+  name: `${c.firstName} ${c.lastName}`,
   value: c.totalBilled,
 }))
 
@@ -216,8 +216,8 @@ export default function ReportsPage() {
                   </TableHeader>
                   <TableBody>
                     {topCustomers.map((customer) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableRow key={customer._id}>
+                        <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
                         <TableCell className="text-right">
                           Rs {customer.totalBilled.toLocaleString()}
                         </TableCell>

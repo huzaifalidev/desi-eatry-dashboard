@@ -16,19 +16,13 @@ import {
 } from './ui/drawer'
 import { Spinner } from './ui/spinner'
 import { mockCustomers } from '@/lib/mock-data'
-
-interface Customer {
-  id: number
-  name: string
-  phone: string
-  address: string
-}
+import { Customer } from '@/lib/types'
 
 interface CustomerFormDrawerProps {
-  customer?: Customer
+  customer?: Partial<Customer>
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (customer: Customer) => void // callback to save new/updated customer
+  onSave: (customer: Partial<Customer>) => void // callback to save new/updated customer
 }
 
 export function CustomerFormDrawer({
@@ -50,10 +44,10 @@ export function CustomerFormDrawer({
   // Initialize form when customer changes
   useEffect(() => {
     if (customer) {
-      setFirstName(customer.firstName || '')
-      setLastName(customer.lastName || '')
-      setPhone(customer.phone)
-      setAddress(customer.address)
+      setFirstName(customer?.firstName || '')
+      setLastName(customer?.lastName || '')
+      setPhone(customer?.phone || '')
+      setAddress(customer?.address || '')
     } else {
       setFirstName('')
       setLastName('')
@@ -99,15 +93,12 @@ export function CustomerFormDrawer({
       await new Promise((resolve) => setTimeout(resolve, 500))
 
       // Build customer object (use existing id if editing)
-      const customerToSave: Customer = {
+      const customerToSave: Partial<Customer> = {
         _id: customer?._id,
         firstName,
         lastName,
         phone,
         address,
-        totalBilled: customer?.totalBilled ?? 0,
-        totalPaid: customer?.totalPaid ?? 0,
-        balance: customer?.balance ?? 0,
       }
       onSave(customerToSave)
       onOpenChange(false)

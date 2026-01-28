@@ -28,16 +28,15 @@ export default function SingleCustomerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const dispatch = useDispatch<any>();
-
-  const {
-    selectedCustomer: customerData,
-    loading,
-    error,
-  } = useSelector((state: RootState) => state.customer);
+  const customerData = useSelector(
+    (state: RootState) => state.customer.selectedCustomer
+  );
+  const { loading, error } = useSelector(
+    (state: RootState) => state.customer
+  );
   const customer: Customer | null = customerData?.user ?? null;
   const bills: Bill[] = customerData?.bills ?? [];
   const payments: Payment[] = customerData?.payments ?? [];
-
   const [openBillDrawer, setOpenBillDrawer] = useState(false);
   const [openPaymentDrawer, setOpenPaymentDrawer] = useState(false);
   const [openWhatsApp, setOpenWhatsApp] = useState(false);

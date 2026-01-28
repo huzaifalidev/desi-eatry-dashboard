@@ -3,24 +3,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { toast } from "sonner";
 import api from "@/lib/axios-instance";
-
-export interface Customer {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  address?: string;
-  isActive?: boolean;
-  summary?: {
-    totalBilled: number;
-    totalPaid: number;
-    balance: number;
-  };
-}
+import { Payment } from "@/lib/types";
+import { Bill } from "./bill-slice";
+import { Customer, CustomerData } from "@/lib/types";
 
 interface CustomerState {
   customers: Customer[];
-  selectedCustomer: Customer | null;
+  selectedCustomer: CustomerData | null;
   loading: boolean;
   error: string | null;
 }
@@ -31,7 +20,6 @@ const initialState: CustomerState = {
   loading: false,
   error: null,
 };
-
 // ---------------- Async Thunks ----------------
 
 // Fetch all customers

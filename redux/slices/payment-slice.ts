@@ -2,16 +2,9 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import api from '@/lib/axios-instance'
+import { Payment } from '@/lib/types'
 
-export interface Payment {
-  _id: string
-  customerId: any
-  billId?: any
-  amount: number
-  method?: string
-  note?: string
-  date: string
-}
+// Re-export Payment type from lib/types
 
 interface PaymentState {
   payments: Payment[]

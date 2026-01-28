@@ -324,7 +324,13 @@ export default function DashboardPage() {
           </Card> */}
         </div>
 
-        <BillEntryDrawer open={openDrawer} onOpenChange={setOpenDrawer} />
+        <BillEntryDrawer
+          open={openDrawer}
+          onOpenChange={setOpenDrawer}
+          customerId=""
+          customerFirstName=""
+          customerLastName=""
+        />
       </div>
   );
 }

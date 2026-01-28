@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react'
 
+export interface CustomerData {
+    user: Customer
+    bills: Bill[]
+    payments: Payment[]
+}
+
 export interface Customer {
     _id: string
     firstName: string
