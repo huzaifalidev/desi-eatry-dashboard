@@ -2,13 +2,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/lib/axios-instance";
 import { toast } from "sonner";
+
+type ThemeMode = "light" | "dark" | "system";
+
 interface AdminState {
   admin: any | null;
   loading: boolean;
   error: string | null;
   sidebarCollapsed: boolean;
   isAuthenticated: boolean;
-  theme: "light" | "dark";
+  theme: ThemeMode;
 }
 
 /* ===========================
@@ -21,10 +24,21 @@ export const loginAdmin = createAsyncThunk(
     thunkAPI
   ) => {
     try {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
       const res = await api.post("/admin/signin", { email, password });
-      toast.success(`Welcome back, ${res.data.admin.firstName} ${res.data.admin.lastName}!`);
-      // ✅ REMOVED window.location.href - let React Router handle it
-      return res.data.admin;
+
+      const { accessToken, refreshToken, admin } = res.data;
+
+      // ✅ STORE TOKENS
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+
+      toast.success(
+        `Welcome back, ${admin.firstName} ${admin.lastName}!`
+      );
+
+      return admin;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(
         err?.response?.data?.msg || "Login failed"
@@ -35,7 +49,6 @@ export const loginAdmin = createAsyncThunk(
 
 /* ===========================
   FETCH LOGGED-IN ADMIN
-  (Used on refresh & new tab)
 =========================== */
 export const fetchAdminData = createAsyncThunk(
   "admin/fetchAdminData",
@@ -54,26 +67,37 @@ export const fetchAdminData = createAsyncThunk(
 /* ===========================
   LOGOUT ADMIN
 =========================== */
-export const logoutAdmin = createAsyncThunk("admin/logoutAdmin", async () => {
-  try {
-    await api.post("/admin/logout");
-  } catch (err) {
-    console.error("Logout error", err);
+export const logoutAdmin = createAsyncThunk(
+  "admin/logoutAdmin",
+  async () => {
+    try {
+      await api.post("/admin/logout");
+    } catch (_) { }
+
+    // ✅ CLEAR TOKENS ALWAYS
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   }
-});
+);
 
 /* ===========================
   SLICE
 =========================== */
+const getInitialTheme = (): ThemeMode => {
+  if (typeof window === "undefined") return "system";
+  return (localStorage.getItem("theme") as ThemeMode) || "system";
+};
+
 const initialState: AdminState = {
   admin: null,
   loading: false,
   error: null,
   sidebarCollapsed: false,
-  isAuthenticated: false,
-  theme: "dark",
+  isAuthenticated:
+    typeof window !== "undefined" &&
+    !!localStorage.getItem("accessToken"),
+  theme: getInitialTheme(),
 };
-
 const adminSlice = createSlice({
   name: "admin",
   initialState,
@@ -85,6 +109,13 @@ const adminSlice = createSlice({
           "sidebarCollapsed",
           state.sidebarCollapsed.toString()
         );
+      }
+    },
+
+    setTheme(state, action: { payload: ThemeMode }) {
+      state.theme = action.payload;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("theme", action.payload);
       }
     },
   },
@@ -106,10 +137,9 @@ const adminSlice = createSlice({
         state.isAuthenticated = false;
       })
 
-      // Fetch Admin (session restore)
+      // Fetch Admin
       .addCase(fetchAdminData.pending, (state) => {
         state.loading = true;
-        state.error = null;
       })
       .addCase(fetchAdminData.fulfilled, (state, action) => {
         state.loading = false;
@@ -125,13 +155,12 @@ const adminSlice = createSlice({
       // Logout
       .addCase(logoutAdmin.fulfilled, (state) => {
         state.admin = null;
+        state.isAuthenticated = false;
         state.loading = false;
         state.error = null;
-        state.isAuthenticated = false;
       });
   },
 });
 
-export const { toggleSidebar } = adminSlice.actions;
-
+export const { toggleSidebar,setTheme } = adminSlice.actions;
 export default adminSlice.reducer;

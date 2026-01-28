@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
-import { loginAdmin, fetchAdminData } from '@/redux/slices/admin-slice'
+import { loginAdmin } from '@/redux/slices/admin-slice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -22,36 +22,47 @@ export default function LoginPage() {
   const router = useRouter()
   const dispatch = useDispatch<any>()
 
-  const { admin, loading, error, isAuthenticated } = useSelector((state: RootState) => state.admin)
+  const { loading, error, isAuthenticated } = useSelector(
+    (state: RootState) => state.admin
+  )
 
   const [email, setEmail] = useState('admin@demo.com')
   const [password, setPassword] = useState('Admin123')
 
-  // Show toast messages for errors
+  /* ===========================
+     BLOCK LOGIN PAGE IF AUTHED
+  =========================== */
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken')
+    if (token && isAuthenticated) {
+      router.replace('/dashboard')
+    }
+  }, [isAuthenticated, router])
+
+  /* ===========================
+     SHOW ERROR TOAST ONCE
+  =========================== */
   useEffect(() => {
     if (error) {
       toast.error(error)
     }
   }, [error])
 
-  // Redirect after login
-  useEffect(() => {
-    if (admin && isAuthenticated) {
-      console.log('Redirecting to dashboard...',admin,isAuthenticated)
-      router.push('/dashboard')
-    };
-  }, [admin, isAuthenticated])
-
+  /* ===========================
+     HANDLE LOGIN
+  =========================== */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (!email || !password) {
       toast.error('Email and password are required')
       return
     }
     try {
       await dispatch(loginAdmin({ email, password })).unwrap()
-    } catch (err: any) {
-      // Error handled via slice toast
+      router.replace('/dashboard')
+    } catch {
+      // handled by redux + toast
     }
   }
 
@@ -74,6 +85,7 @@ export default function LoginPage() {
               disabled={loading}
               required
             />
+
             <Label htmlFor="password">Password</Label>
             <Input
               type="password"
@@ -83,6 +95,7 @@ export default function LoginPage() {
               disabled={loading}
               required
             />
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Spinner /> : 'Login'}
             </Button>

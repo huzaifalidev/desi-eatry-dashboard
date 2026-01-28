@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // ✅ Fixed missing import
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { Navbar } from "@/components/navbar";
 import type { DashboardLayoutProps } from "@/lib/types";
@@ -13,18 +13,26 @@ import { fetchAllCustomers } from "@/redux/slices/customer-slice";
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const router = useRouter(); // ✅ Added router
+  const router = useRouter();
 
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         await dispatch(fetchAdminData()).unwrap();
         await dispatch(fetchMenuItems()).unwrap();
         await dispatch(fetchAllCustomers()).unwrap();
-      } catch (error) {
-        router.push("/login"); // redirect if not authenticated
+      } catch {
+        router.replace("/login");
       }
     };
+
     checkAuth();
   }, [dispatch, router]);
 

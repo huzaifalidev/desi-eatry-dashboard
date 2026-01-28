@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -12,16 +13,36 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DropdownMenuLabel } from '@radix-ui/react-dropdown-menu'
-import { Avatar, AvatarBadge, AvatarFallback, AvatarImage , } from './ui/avatar'
+import {
+  Avatar,
+  AvatarBadge,
+  AvatarFallback,
+  AvatarImage,
+} from './ui/avatar'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState, AppDispatch } from '@/redux/store/store'
-import { logoutAdmin } from '@/redux/slices/admin-slice'
+import { logoutAdmin, setTheme as setReduxTheme } from '@/redux/slices/admin-slice'
 
 export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
-  const { theme, setTheme } = useTheme()
   const router = useRouter()
   const dispatch = useDispatch<AppDispatch>()
-  const user = useSelector((state: RootState) => state.admin.admin);
+
+  // next-themes
+  const { setTheme, resolvedTheme } = useTheme()
+
+  // Redux
+  const reduxTheme = useSelector(
+    (state: RootState) => state.admin.theme
+  )
+  const user = useSelector(
+    (state: RootState) => state.admin.admin
+  )
+
+  // 🔑 Sync Redux theme → next-themes
+  useEffect(() => {
+    setTheme(reduxTheme)
+  }, [reduxTheme, setTheme])
+
   return (
     <nav className="dark:bg-zinc-900 bg-[#fafafa] border-b border-border h-16 px-4 sm:px-6 sticky top-0 z-10">
       <div className="w-full h-full flex items-center justify-between">
@@ -37,18 +58,19 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <Menu className="h-6 w-6" />
           </Button>
 
-          {/* Desktop brand */}
           <div className="hidden lg:flex flex-col leading-none">
             <h1 className="font-bold text-lg">Desi Eatry</h1>
             <h5 className="text-xs text-muted-foreground">Dashboard</h5>
           </div>
         </div>
 
-        {/* CENTER (mobile brand) */}
+        {/* CENTER (mobile) */}
         <div className="flex justify-center lg:hidden">
           <div className="flex flex-col items-center leading-none">
             <h1 className="font-bold text-base">Desi Eatry</h1>
-            <span className="text-[10px] text-muted-foreground">Dashboard</span>
+            <span className="text-[10px] text-muted-foreground">
+              Dashboard
+            </span>
           </div>
         </div>
 
@@ -58,19 +80,22 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative h-8 w-8 border rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                className="relative h-8 w-8 border rounded-full"
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage
                     src="https://github.com/evilrabbit.png"
-                    alt={user ? `${user.firstName} ${user.lastName}` : 'User Avatar'}
-                    className=""
+                    alt={
+                      user
+                        ? `${user.firstName} ${user.lastName}`
+                        : 'User Avatar'
+                    }
                   />
                   <AvatarFallback>
-                    {user?.firstName[0]}
-                    {user?.lastName[0]}
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
                   </AvatarFallback>
-                  <AvatarBadge className="bg-green-500  animate-pulse"  />
+                  <AvatarBadge className="bg-green-500 animate-pulse" />
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -85,7 +110,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                   <p className="text-sm font-medium leading-none">
                     {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs leading-none text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {user?.email}
                   </p>
                 </div>
@@ -93,15 +118,22 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
               <DropdownMenuSeparator />
 
+              {/* THEME TOGGLE */}
               <DropdownMenuItem
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                onClick={() => {
+                  const nextTheme =
+                    resolvedTheme === 'light' ? 'dark' : 'light'
+                  dispatch(setReduxTheme(nextTheme))
+                }}
               >
-                {theme === 'light' ? (
+                {resolvedTheme === 'light' ? (
                   <Moon className="mr-2 h-4 w-4" />
                 ) : (
                   <Sun className="mr-2 h-4 w-4" />
                 )}
-                <span>{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
+                <span>
+                  {resolvedTheme === 'light' ? 'Dark' : 'Light'} Mode
+                </span>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
@@ -118,7 +150,6 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
       </div>
     </nav>
   )
