@@ -126,7 +126,6 @@ export function PaymentEntryDrawer({
               <Input
                 type="number"
                 min="0"
-                step="0.01"
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -162,7 +161,7 @@ export function PaymentEntryDrawer({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !amount}>
               {isLoading && <Spinner />} Record Payment
             </Button>
           </div>

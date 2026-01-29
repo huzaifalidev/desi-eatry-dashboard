@@ -36,7 +36,7 @@ export function CustomerFormDrawer({
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-
+  const originalCustomer = useRef<Partial<Customer> | null>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
@@ -48,13 +48,22 @@ export function CustomerFormDrawer({
       setLastName(customer.lastName || '')
       setPhone(customer.phone || '')
       setAddress(customer.address || '')
+
+      originalCustomer.current = {
+        firstName: customer.firstName || '',
+        lastName: customer.lastName || '',
+        phone: customer.phone || '',
+        address: customer.address || '',
+      }
     } else {
       setFirstName('')
       setLastName('')
       setPhone('')
       setAddress('')
+      originalCustomer.current = null
     }
   }, [customer])
+
 
   // Touch drag handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -83,8 +92,22 @@ export function CustomerFormDrawer({
     e.preventDefault()
 
     if (!firstName || !phone) {
-      toast.error('Please fill required fields')
+      toast.warning('Please fill required fields')
       return
+    }
+
+    // Check if anything changed
+    if (customer && originalCustomer.current) {
+      const hasChanges =
+        firstName !== originalCustomer.current.firstName ||
+        lastName !== originalCustomer.current.lastName ||
+        phone !== originalCustomer.current.phone ||
+        address !== originalCustomer.current.address
+
+      if (!hasChanges) {
+        toast.info('No changes detected')
+        return
+      }
     }
 
     setIsLoading(true)
@@ -98,10 +121,10 @@ export function CustomerFormDrawer({
         phone,
         address,
       }
+
       onSave(customerToSave)
       onOpenChange(false)
 
-      // Clear form fields
       setFirstName('')
       setLastName('')
       setPhone('')
@@ -110,6 +133,7 @@ export function CustomerFormDrawer({
       setIsLoading(false)
     }
   }
+
 
   return (
     <>
@@ -187,7 +211,6 @@ export function CustomerFormDrawer({
                   disabled={isLoading}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
@@ -210,7 +233,8 @@ export function CustomerFormDrawer({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              {/* i wan to disable if form are empty */}
+              <Button type="submit" disabled={isLoading || !firstName || !phone}>
                 {isLoading ? <><Spinner /> Saving...</> : customer ? 'Update Customer' : 'Add Customer'}
               </Button>
             </div>
