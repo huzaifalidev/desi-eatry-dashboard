@@ -54,7 +54,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          'fixed z-50 lg:static inset-y-0 left-0 bg-[#fafafa] dark:bg-zinc-900 border-r transition-all duration-300 flex flex-col',
+          'fixed z-50 lg:static inset-y-0 left-0 bg-[#fafafa] dark:bg-zinc-950 border-r transition-all duration-300 flex flex-col',
           sidebarCollapsed ? 'w-20' : 'w-64',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:translate-x-0'
@@ -132,8 +132,15 @@ export function Sidebar({
                   asChild
                   onClick={() => setMobileOpen(false)}
                 >
-                  <Link href={item.href} className="flex items-center w-full gap-3">
-                    <item.icon size={20} />
+                  <Link href={item.href} className="flex items-center w-full gap-3 group">
+                    <item.icon
+                      size={20}
+                      className={cn(
+                        "transition-transform duration-200",
+                        sidebarCollapsed && "group-hover:scale-125"
+                      )}
+                    />
+
                     {!sidebarCollapsed && <span>{item.label}</span>}
                   </Link>
                 </Button>

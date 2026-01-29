@@ -50,7 +50,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   }, [reduxTheme, setTheme])
 
   return (
-    <nav className="dark:bg-zinc-900 bg-[#fafafa] border-b border-border h-16 px-4 sm:px-6 sticky top-0 z-10">
+    <nav className="dark:bg-zinc-950 bg-[#fafafa] border-b border-border h-16 px-4 sm:px-6 sticky top-0 z-10">
       <div className="w-full h-full flex items-center justify-between">
 
         {/* LEFT */}
