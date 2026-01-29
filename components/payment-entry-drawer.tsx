@@ -2,6 +2,13 @@
 
 import { useState, useRef } from 'react'
 import { useDispatch } from 'react-redux'
+import { CalendarIcon } from 'lucide-react'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -41,6 +48,7 @@ export function PaymentEntryDrawer({
 
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('cash')
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date())
   const [isLoading, setIsLoading] = useState(false)
 
   // ---------- swipe to close ----------
@@ -120,6 +128,31 @@ export function PaymentEntryDrawer({
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+          {/* Payment Date */}
+          <div className="space-y-2">
+            <Label>Payment Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  disabled={isLoading}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {paymentDate ? paymentDate.toLocaleDateString() : 'Pick a date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={paymentDate}
+                  onSelect={setPaymentDate}
+                  disabled={isLoading}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Amount (Rs)</Label>

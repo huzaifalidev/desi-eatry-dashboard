@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -56,6 +62,7 @@ export function BillEntryDrawer({
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [selectedSize, setSelectedSize] = useState<"half" | "full">("full");
   const [quantity, setQuantity] = useState("");
+  const [billDate, setBillDate] = useState<Date | undefined>(new Date());
   const [billItems, setBillItems] = useState<any[]>([]);
 
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -172,6 +179,31 @@ export function BillEntryDrawer({
         </SheetHeader>
 
         <div className="space-y-6 mt-4">
+          {/* Bill Date */}
+          <div className="space-y-2">
+            <Label>Bill Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                  disabled={isLoading}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {billDate ? billDate.toLocaleDateString() : 'Pick a date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={billDate}
+                  onSelect={setBillDate}
+                  disabled={isLoading}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
           {/* Menu, Size, Quantity, Add */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">

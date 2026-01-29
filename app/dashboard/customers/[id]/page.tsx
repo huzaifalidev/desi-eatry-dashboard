@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { fetchCustomerById } from "@/redux/slices/customer-slice";
 import type { Customer, Payment, Bill, BillItem } from "@/lib/types";
 import { RootState } from "@/redux/store/store";
+import { fetchMenuItems } from "@/redux/slices/menu-slice";
 export default function SingleCustomerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function SingleCustomerPage() {
   useEffect(() => {
     if (!id) return;
     dispatch(fetchCustomerById(id))
+    dispatch(fetchMenuItems())
       .unwrap()
       .catch(() => toast.error("Failed to fetch customer"));
   }, [id, dispatch]);

@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Receipt
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +27,7 @@ const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/menu', label: 'Food Menu', icon: UtensilsCrossed },
+  { href: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 

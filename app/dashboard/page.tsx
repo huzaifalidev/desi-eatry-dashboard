@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { fetchMenuItems } from "@/redux/slices/menu-slice";
 import { fetchAllCustomers } from "@/redux/slices/customer-slice";
+import {fetchExpenses} from "@/redux/slices/expense-slice";
 import { useAppDispatch } from "@/hooks/redux-hooks";
 
 export default function DashboardPage() {
@@ -56,6 +57,7 @@ export default function DashboardPage() {
     const fetchData = async () => {
       await dispatch(fetchMenuItems()).unwrap();
       await dispatch(fetchAllCustomers()).unwrap();
+      await dispatch(fetchExpenses()).unwrap();
     };
     fetchData();
   }, [])

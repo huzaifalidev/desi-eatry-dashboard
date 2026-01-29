@@ -5,6 +5,7 @@ import menuReducer from "@/redux/slices/menu-slice";
 import customerReducer from "@/redux/slices/customer-slice";
 import adminReducer from "@/redux/slices/admin-slice";
 import billReducer from "@/redux/slices/bill-slice";
+import expenseReducer from "@/redux/slices/expense-slice";
 
 import {
   persistStore,
@@ -34,6 +35,7 @@ export const store = configureStore({
     menu: menuReducer, // 
     customer: customerReducer, // 
     billing: billReducer,
+    expense: expenseReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

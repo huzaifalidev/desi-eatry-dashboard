@@ -43,7 +43,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 
-import { fetchAllCustomers, addCustomer, editCustomer, removeCustomer } from '@/redux/slices/customer-slice'
+import { fetchAllCustomers, addCustomer, editCustomer, removeCustomer, } from '@/redux/slices/customer-slice'
 import type { Customer } from '@/lib/types'
 
 export default function CustomersPage() {
