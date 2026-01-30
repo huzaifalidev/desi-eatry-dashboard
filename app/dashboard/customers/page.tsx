@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Edit, Trash2, Eye, Users } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Edit, Trash2, Users } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '@/redux/store/store'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,15 +50,50 @@ import type { Customer } from '@/lib/types'
 
 export default function CustomersPage() {
   const dispatch = useDispatch<any>()
+  const router = useRouter()
   const { customers, loading } = useSelector((state: RootState) => state.customer)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [editCustomerData, setEditCustomerData] = useState<any>(null)
   const [deleteCustomerItem, setDeleteCustomerItem] = useState<Customer | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Calculate insights
+  const totalCustomers = customers.length
+  const totalBilled = customers.reduce((sum, c) => sum + (c.summary?.totalBilled || 0), 0)
+  const totalPaid = customers.reduce((sum, c) => sum + (c.summary?.totalPaid || 0), 0)
+  const totalOutstanding = customers.reduce((sum, c) => sum + (c.summary?.balance || 0), 0)
+
+  const customersWithPositiveBalance = customers.filter((c) => (c.summary?.balance || 0) > 0).length
+  const customersWithNegativeBalance = customers.filter((c) => (c.summary?.balance || 0) < 0).length
+  const customersWithZeroBalance = customers.filter((c) => (c.summary?.balance || 0) === 0).length
+
+  const balanceDistributionData = [
+    { name: 'Positive', value: customersWithPositiveBalance, fill: '#dc2626' },
+    { name: 'Zero', value: customersWithZeroBalance, fill: '#6b7280' },
+    { name: 'Negative', value: customersWithNegativeBalance, fill: '#16a34a' },
+  ].filter((item) => item.value > 0)
+
   useEffect(() => {
     dispatch(fetchAllCustomers())
   }, [dispatch])
+
+  // Navigate to customer details page
+  const handleRowClick = (customerId: string) => {
+    router.push(`/dashboard/customers/${customerId}`)
+  }
+
+  // Edit button click - prevent row click
+  const handleEditClick = (e: React.MouseEvent, customer: Customer) => {
+    e.stopPropagation()
+    setEditCustomerData(customer)
+    setOpenDrawer(true)
+  }
+
+  // Delete button click - prevent row click
+  const handleDeleteClick = (e: React.MouseEvent, customer: Customer) => {
+    e.stopPropagation()
+    setDeleteCustomerItem(customer)
+  }
 
   const handleSaveCustomer = async (customer: any) => {
     try {
@@ -126,6 +163,82 @@ export default function CustomersPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage your customers.</p>
       </div>
 
+      {/* Customer Insights Section */}
+      {!loading && customers.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Customer Insights</h2>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Total Customers</p>
+                  <p className="text-3xl font-bold">{totalCustomers}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Total Billed</p>
+                  <p className="text-2xl font-bold">Rs {totalBilled.toFixed(0).toLocaleString()}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Total Paid</p>
+                  <p className="text-2xl font-bold text-green-600">Rs {totalPaid.toFixed(0).toLocaleString()}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Total Outstanding</p>
+                  <p className="text-2xl font-bold text-orange-600">Rs {totalOutstanding.toFixed(0).toLocaleString()}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Balance Distribution Chart */}
+          {balanceDistributionData.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Customer Balance Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={balanceDistributionData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {balanceDistributionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Table / Empty / Skeleton */}
       <Card>
         <CardHeader>
@@ -194,8 +307,12 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {customers.map((customer) => (
-                  <TableRow key={customer._id} className="text-sm sm:text-base">
-                    <TableCell className="truncate">{customer?.firstName} {customer?.lastName}</TableCell>
+                  <TableRow
+                    key={customer._id}
+                    onClick={() => handleRowClick(customer._id)}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    <TableCell className="truncate font-medium">{customer?.firstName} {customer?.lastName}</TableCell>
                     <TableCell className="truncate">{customer?.phone}</TableCell>
                     <TableCell className="text-right">Rs {customer?.summary?.totalBilled.toFixed(0).toLocaleString() ?? 0}</TableCell>
                     <TableCell className="text-right text-green-600 font-semibold">Rs {customer?.summary?.totalPaid.toFixed(0).toLocaleString() ?? 0}</TableCell>
@@ -204,27 +321,23 @@ export default function CustomersPage() {
                         Rs {customer.summary?.balance.toFixed(0).toLocaleString() ?? 0}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center flex flex-wrap sm:flex-nowrap justify-center gap-1">
-                      <Link href={`/dashboard/customers/${customer._id}`}>
-                        <Button variant="ghost" size="sm"><Eye size={16} /></Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditCustomerData(customer)
-                          setOpenDrawer(true)
-                        }}
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteCustomerItem(customer)}
-                      >
-                        <Trash2 size={16} className="text-destructive" />
-                      </Button>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleEditClick(e, customer)}
+                        >
+                          <Edit size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleDeleteClick(e, customer)}
+                        >
+                          <Trash2 size={16} className="text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
