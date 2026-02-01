@@ -225,7 +225,7 @@ export function BillEntryDrawer({
 
             {(() => {
               const menuItem = menuItems.find((m) => m._id === selectedMenuId);
-              if (!menuItem || menuItem.unit === "piece") return null;
+              if (!menuItem || menuItem.unit !== "plate") return null;
 
               return (
                 <div className="space-y-2">
