@@ -156,7 +156,7 @@ export function BillEntryDrawer({
 
     try {
       setIsLoading(true);
-      
+
       const billPayload = {
         date: (billDate || new Date()).toISOString(),
         customerId,
@@ -191,7 +191,7 @@ export function BillEntryDrawer({
           `Bill for ${customerFirstName} ${customerLastName} saved`
         );
       }
-      
+
       await dispatch(fetchCustomerById(customerId));
       setBillItems([]);
       onOpenChange(false);
@@ -269,10 +269,10 @@ export function BillEntryDrawer({
                 </SelectContent>
               </Select>
             </div>
-
+            {/* this is condition */}
             {(() => {
               const menuItem = menuItems.find((m) => m._id === selectedMenuId);
-              if (!menuItem || menuItem.unit !== "plate") return null;
+              if (!menuItem || menuItem.half === undefined) return null;
 
               return (
                 <div className="space-y-2">
@@ -282,16 +282,17 @@ export function BillEntryDrawer({
                     onValueChange={(v) => setSelectedSize(v as "half" | "full")}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select size" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="half">Half</SelectItem>
+                      {menuItem.half && <SelectItem value="half">Half</SelectItem>}
                       <SelectItem value="full">Full</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               );
             })()}
+
 
             <div className="space-y-2">
               <Label>Quantity</Label>

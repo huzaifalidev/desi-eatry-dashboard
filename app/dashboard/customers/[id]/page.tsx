@@ -72,6 +72,7 @@ export default function SingleCustomerPage() {
   );
 
   const customer: Customer | null = customerData?.user ?? null;
+  console.log(customer);
   const bills: any[] = customerData?.bills ?? [];
   const payments: any[] = customerData?.payments ?? [];
 
