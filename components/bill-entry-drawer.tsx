@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Plus, Trash2, CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -35,7 +35,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
-import { createBill } from "@/redux/slices/bill-slice";
+import { createBill, updateBill } from "@/redux/slices/bill-slice";
 import { fetchCustomerById } from "@/redux/slices/customer-slice";
 import { AppDispatch, RootState } from "@/redux/store/store";
 import { Spinner } from "./ui/spinner";
@@ -46,6 +46,7 @@ interface BillEntryDrawerProps {
   customerId: string;
   customerFirstName: string;
   customerLastName: string;
+  selectedBill?: any;
 }
 
 export function BillEntryDrawer({
@@ -54,6 +55,7 @@ export function BillEntryDrawer({
   customerId,
   customerFirstName,
   customerLastName,
+  selectedBill,
 }: BillEntryDrawerProps) {
   let menuItems = useSelector((state: RootState) => state.menu.items);
   menuItems = menuItems.filter((item) => item.status === "active");
@@ -64,10 +66,38 @@ export function BillEntryDrawer({
   const [quantity, setQuantity] = useState("");
   const [billDate, setBillDate] = useState<Date | undefined>(new Date());
   const [billItems, setBillItems] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentTranslate = useRef(0);
+
+  // Initialize form with selected bill data when drawer opens or selectedBill changes
+  useEffect(() => {
+    if (open && selectedBill) {
+      setIsEditMode(true);
+      setBillDate(new Date(selectedBill.date));
+      // Parse existing bill items
+      const existingItems = (selectedBill.items || []).map((item: any) => ({
+        id: item._id || Date.now().toString(),
+        menuId: typeof item.menuId === "string" ? item.menuId : item.menuId._id,
+        name: item.name,
+        size: item.size || "full",
+        unit: item.unit,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.total,
+      }));
+      setBillItems(existingItems);
+    } else if (open) {
+      setIsEditMode(false);
+      setBillDate(new Date());
+      setBillItems([]);
+      setSelectedMenuId("");
+      setQuantity("");
+      setSelectedSize("full");
+    }
+  }, [open, selectedBill]);
 
   // ---------------- Touch Swipe ----------------
   const handleTouchStart = (e: React.TouchEvent) =>
@@ -126,27 +156,45 @@ export function BillEntryDrawer({
 
     try {
       setIsLoading(true);
-      await dispatch(
-        createBill({
-          date: (billDate || new Date()).toISOString(),
-          customerId,
-          items: billItems.map((item) => ({
-            menuId: item.menuId,
-            name: item.name,
-            size: item.size,
-            unit: item.unit,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.total,
-          })),
-        })
-      ).unwrap();
+      
+      const billPayload = {
+        date: (billDate || new Date()).toISOString(),
+        customerId,
+        items: billItems.map((item) => ({
+          menuId: item.menuId,
+          name: item.name,
+          size: item.size,
+          unit: item.unit,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total,
+        })),
+      };
+
+      if (isEditMode && selectedBill) {
+        // Update existing bill
+        await dispatch(
+          updateBill({
+            billId: selectedBill._id,
+            customerId,
+            items: billPayload.items,
+            date: billPayload.date,
+          })
+        ).unwrap();
+        toast.success("Bill updated successfully");
+      } else {
+        // Create new bill
+        await dispatch(
+          createBill(billPayload)
+        ).unwrap();
+        toast.success(
+          `Bill for ${customerFirstName} ${customerLastName} saved`
+        );
+      }
+      
       await dispatch(fetchCustomerById(customerId));
       setBillItems([]);
       onOpenChange(false);
-      toast.success(
-        `Bill for ${customerFirstName} ${customerLastName} saved`
-      );
     } catch (err: any) {
       toast.error(err || "Failed to save bill");
     } finally {
@@ -170,12 +218,11 @@ export function BillEntryDrawer({
         </div>
 
         <SheetHeader className="mb-4 flex items-center justify-between">
-          <SheetTitle>Add New Bill</SheetTitle>
+          <SheetTitle>{isEditMode ? "Edit Bill" : "Add New Bill"}</SheetTitle>
           <SheetDescription>
-            Create a new bill for{" "}
-            <strong>
-              {customerFirstName} {customerLastName}
-            </strong>
+            {isEditMode
+              ? `Update bill details`
+              : `Create a new bill for ${customerFirstName} ${customerLastName}`}
           </SheetDescription>
         </SheetHeader>
 
@@ -323,7 +370,7 @@ export function BillEntryDrawer({
             </Button>
 
             <Button onClick={handleSaveBill} disabled={billItems.length === 0}>
-              {isLoading && <Spinner />} Save Bill
+              {isLoading && <Spinner />} {isEditMode ? "Update Bill" : "Save Bill"}
             </Button>
           </div>
         </div>

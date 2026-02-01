@@ -3,8 +3,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { toast } from "sonner";
 import api from "@/lib/axios-instance";
-import { Payment } from "@/lib/types";
-import { Bill } from "./bill-slice";
 import { Customer, CustomerData } from "@/lib/types";
 
 interface CustomerState {
@@ -44,7 +42,6 @@ export const addCustomer = createAsyncThunk(
   async (data: any, { rejectWithValue }) => {
     try {
       const res = await api.post("/admin/users", data);
-      toast.success("Customer added");
       return res.data.user;
     } catch (err: any) {
       toast.error(err.response?.data?.msg || "Failed to create customer");
@@ -61,7 +58,6 @@ export const editCustomer = createAsyncThunk(
   async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
     try {
       const res = await api.put(`/admin/users/${id}`, data);
-      toast.success("Customer updated successfully");
       return res.data.user;
     } catch (err: any) {
       toast.error(err.response?.data?.msg || "Failed to update customer");
@@ -94,7 +90,6 @@ export const removeCustomer = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       await api.delete(`/admin/users/${id}`);
-      toast.success("Customer deleted successfully");
       return id;
     } catch (err: any) {
       toast.error(err.response?.data?.msg || "Failed to delete customer");

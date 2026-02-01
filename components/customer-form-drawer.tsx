@@ -164,7 +164,7 @@ export function CustomerFormDrawer({
           "
         >
           <div className="flex items-center justify-center mb-0">
-            <div className="w-30 h-2.5 dark:bg-zinc-800 rounded-full" />
+            <div className="w-30 h-2.5 dark:bg-zinc-800 bg-zinc-200 rounded-full" />
           </div>
           <SheetHeader className='flex items-center justify-center mt-0 mb-4'>
             <SheetTitle>{customer ? 'Update Customer' : 'Add New Customer'}</SheetTitle>

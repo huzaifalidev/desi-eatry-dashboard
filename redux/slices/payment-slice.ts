@@ -4,8 +4,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import api from '@/lib/axios-instance'
 import { Payment } from '@/lib/types'
 
-// Re-export Payment type from lib/types
-
+// ---------------- TYPES ----------------
 interface PaymentState {
   payments: Payment[]
   loading: boolean
@@ -18,9 +17,9 @@ const initialState: PaymentState = {
   error: null,
 }
 
-/* ======================================================
-   CREATE PAYMENT
-====================================================== */
+// ---------------- ASYNC THUNKS ----------------
+
+// CREATE PAYMENT
 export const createPayment = createAsyncThunk(
   'payment/createPayment',
   async (
@@ -38,16 +37,12 @@ export const createPayment = createAsyncThunk(
       const res = await api.post('/admin/payment', data)
       return res.data.payment
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to create payment'
-      )
+      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Failed to create payment')
     }
   }
 )
 
-/* ======================================================
-   GET ALL PAYMENTS
-====================================================== */
+// FETCH ALL PAYMENTS
 export const fetchAllPayments = createAsyncThunk(
   'payment/fetchAllPayments',
   async (_, thunkAPI) => {
@@ -55,16 +50,12 @@ export const fetchAllPayments = createAsyncThunk(
       const res = await api.get('/admin/payment')
       return res.data.payments
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to fetch payments'
-      )
+      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Failed to fetch payments')
     }
   }
 )
 
-/* ======================================================
-   GET PAYMENTS BY CUSTOMER
-====================================================== */
+// FETCH PAYMENTS BY CUSTOMER
 export const fetchPaymentsByCustomer = createAsyncThunk(
   'payment/fetchPaymentsByCustomer',
   async (customerId: string, thunkAPI) => {
@@ -79,26 +70,48 @@ export const fetchPaymentsByCustomer = createAsyncThunk(
   }
 )
 
-/* ======================================================
-   DELETE PAYMENT
-====================================================== */
-export const deletePayment = createAsyncThunk(
-  'payment/deletePayment',
-  async (paymentId: string, thunkAPI) => {
+// UPDATE PAYMENT
+export const updatePayment = createAsyncThunk(
+  'payment/updatePayment',
+  async (
+    data: {
+      paymentId: string
+      customerId: string
+      amount: number
+      method?: string
+      note?: string
+      date?: Date
+      billId?: string
+    },
+    thunkAPI
+  ) => {
     try {
-      await api.delete(`/admin/payment/${paymentId}`)
-      return paymentId
+      const { paymentId, ...body } = data
+      const res = await api.put(`/admin/payment/${paymentId}`, body)
+      return res.data.payment
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(
-        err?.response?.data?.msg || 'Failed to delete payment'
-      )
+      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Failed to update payment')
     }
   }
 )
 
-/* ======================================================
-   SLICE
-====================================================== */
+// DELETE PAYMENT (requires customerId in body)
+export const deletePayment = createAsyncThunk(
+  'payment/deletePayment',
+  async (
+    { paymentId, customerId }: { paymentId: string; customerId: string },
+    thunkAPI
+  ) => {
+    try {
+      await api.delete(`/admin/payment/${paymentId}`, { data: { customerId } })
+      return paymentId
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err?.response?.data?.msg || 'Failed to delete payment')
+    }
+  }
+)
+
+// ---------------- SLICE ----------------
 const paymentSlice = createSlice({
   name: 'payment',
   initialState,
@@ -153,7 +166,26 @@ const paymentSlice = createSlice({
         state.error = action.payload as string
       })
 
-      // DELETE
+      // UPDATE PAYMENT
+      .addCase(updatePayment.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(updatePayment.fulfilled, (state, action: PayloadAction<Payment>) => {
+        state.loading = false
+        const index = state.payments.findIndex((p) => p._id === action.payload._id)
+        if (index !== -1) {
+          state.payments[index] = action.payload
+        } else {
+          state.payments.unshift(action.payload)
+        }
+      })
+      .addCase(updatePayment.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
+      })
+
+      // DELETE PAYMENT
       .addCase(deletePayment.pending, (state) => {
         state.loading = true
         state.error = null

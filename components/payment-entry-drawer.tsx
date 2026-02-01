@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { CalendarIcon } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
-import { createPayment } from '@/redux/slices/payment-slice'
+import { createPayment, updatePayment } from '@/redux/slices/payment-slice'
 import type { AppDispatch } from '@/redux/store/store'
 import { fetchCustomerById } from '@/redux/slices/customer-slice'
 
@@ -37,12 +37,14 @@ interface PaymentEntryDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   customerId: string
+  selectedPayment?: any
 }
 
 export function PaymentEntryDrawer({
   open,
   onOpenChange,
   customerId,
+  selectedPayment,
 }: PaymentEntryDrawerProps) {
   const dispatch = useDispatch<AppDispatch>()
 
@@ -50,11 +52,27 @@ export function PaymentEntryDrawer({
   const [method, setMethod] = useState('cash')
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date())
   const [isLoading, setIsLoading] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
 
   // ---------- swipe to close ----------
   const sheetRef = useRef<HTMLDivElement>(null)
   const startY = useRef(0)
   const currentTranslate = useRef(0)
+
+  // Initialize form with selected payment data when drawer opens
+  useEffect(() => {
+    if (open && selectedPayment) {
+      setIsEditMode(true)
+      setAmount(selectedPayment.amount?.toString() || '')
+      setMethod(selectedPayment.method || 'cash')
+      setPaymentDate(new Date(selectedPayment.date))
+    } else if (open) {
+      setIsEditMode(false)
+      setAmount('')
+      setMethod('cash')
+      setPaymentDate(new Date())
+    }
+  }, [open, selectedPayment])
 
   const handleTouchStart = (e: React.TouchEvent) =>
     (startY.current = e.touches[0].clientY)
@@ -86,17 +104,34 @@ export function PaymentEntryDrawer({
 
     try {
       setIsLoading(true)
-      await dispatch(
-        createPayment({
-          customerId,
-          amount: Number(amount),
-          method,
-          date: paymentDate,
-        }),
-      ).unwrap()
-      toast.success(
-        `Payment of Rs ${Number(amount).toLocaleString()} recorded`,
-      )
+      const paymentData = {
+        customerId,
+        amount: Number(amount),
+        method,
+        date: paymentDate,
+      }
+
+      if (isEditMode && selectedPayment) {
+        // Update existing payment
+        await dispatch(
+          updatePayment({
+            paymentId: selectedPayment._id,
+            ...paymentData,
+          })
+        ).unwrap()
+        toast.success(
+          `Payment of Rs ${Number(amount).toLocaleString()} updated`,
+        )
+      } else {
+        // Create new payment
+        await dispatch(
+          createPayment(paymentData)
+        ).unwrap()
+        toast.success(
+          `Payment of Rs ${Number(amount).toLocaleString()} recorded`,
+        )
+      }
+      
       setAmount('')
       setMethod('cash')
       await dispatch(fetchCustomerById(customerId)).unwrap()
@@ -124,8 +159,10 @@ export function PaymentEntryDrawer({
         </div>
 
         <SheetHeader className="mb-4 flex items-center justify-between">
-          <SheetTitle>Add Payment</SheetTitle>
-          <SheetDescription>Record a payment for this customer</SheetDescription>
+          <SheetTitle>{isEditMode ? "Edit Payment" : "Add Payment"}</SheetTitle>
+          <SheetDescription>
+            {isEditMode ? 'Update payment details' : 'Record a payment for this customer'}
+          </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-2">
@@ -196,7 +233,7 @@ export function PaymentEntryDrawer({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading || !amount}>
-              {isLoading && <Spinner />} Record Payment
+              {isLoading && <Spinner />} {isEditMode ? "Update Payment" : "Record Payment"}
             </Button>
           </div>
         </form>

@@ -3,11 +3,34 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft, Plus, User, FileText, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  User,
+  FileText,
+  Trash2,
+  MessageCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Empty,
   EmptyHeader,
@@ -22,33 +45,108 @@ import { WhatsAppInvoiceDialog } from "@/components/whatsapp-invoice-dialog";
 import { toast } from "sonner";
 
 import { fetchCustomerById } from "@/redux/slices/customer-slice";
+import { deleteBill } from "@/redux/slices/bill-slice";
+import { deletePayment } from "@/redux/slices/payment-slice";
 import type { Customer, Payment, Bill, BillItem } from "@/lib/types";
-import { RootState } from "@/redux/store/store";
+import type { AppDispatch, RootState } from "@/redux/store/store";
 import { fetchMenuItems } from "@/redux/slices/menu-slice";
+
+interface SelectedItem {
+  type: "bill" | "payment";
+  id: string;
+  data: Bill | Payment | null;
+}
+
 export default function SingleCustomerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch<AppDispatch>();
+
   const customerData = useSelector(
     (state: RootState) => state.customer.selectedCustomer
   );
-  const { loading, error } = useSelector(
+  const { loading: customerLoading, error: customerError } = useSelector(
     (state: RootState) => state.customer
   );
+
   const customer: Customer | null = customerData?.user ?? null;
-  const bills: Bill[] = customerData?.bills ?? [];
-  const payments: Payment[] = customerData?.payments ?? [];
+  const bills: any[] = customerData?.bills ?? [];
+  const payments: any[] = customerData?.payments ?? [];
+
   const [openBillDrawer, setOpenBillDrawer] = useState(false);
   const [openPaymentDrawer, setOpenPaymentDrawer] = useState(false);
   const [openWhatsApp, setOpenWhatsApp] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [deleteItem, setDeleteItem] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [billsLoading, setBillsLoading] = useState(false);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+
   useEffect(() => {
     if (!id) return;
-    dispatch(fetchCustomerById(id))
-    dispatch(fetchMenuItems())
-      .unwrap()
-      .catch(() => toast.error("Failed to fetch customer"));
+    dispatch(fetchCustomerById(id));
+    dispatch(fetchMenuItems()).catch(() =>
+      toast.error("Failed to fetch menu items")
+    );
   }, [id, dispatch]);
-  if (loading) {
+
+  // ────────── Handlers ──────────
+  const handleEditBill = (bill: any) => {
+    setSelectedItem({ type: "bill", id: bill._id, data: bill });
+    setOpenBillDrawer(true);
+  };
+
+  const handleEditPayment = (payment: any) => {
+    setSelectedItem({ type: "payment", id: payment._id, data: payment });
+    setOpenPaymentDrawer(true);
+  };
+
+  const confirmDeleteBill = async () => {
+    if (!deleteItem) return;
+    try {
+      setIsDeleting(true);
+      await dispatch(
+        deleteBill({ billId: deleteItem._id, customerId: customer?._id || "" })
+      ).unwrap();
+      toast.success("Bill deleted");
+      if (id) {
+        dispatch(fetchCustomerById(id));
+      }
+      setDeleteItem(null);
+    } catch (err: any) {
+      toast.error(err || "Failed to delete bill");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDeletePayment = async () => {
+    if (!deleteItem) return;
+    try {
+      setIsDeleting(true);
+      await dispatch(
+        deletePayment({ paymentId: deleteItem._id, customerId: customer?._id || "" })
+      ).unwrap();
+      toast.success("Payment deleted");
+      if (id) {
+        dispatch(fetchCustomerById(id));
+      }
+      setDeleteItem(null);
+    } catch (err: any) {
+      toast.error(err || "Failed to delete payment");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDrawerOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedItem(null);
+    }
+  };
+
+  // ────────── Loading State ──────────
+  if (customerLoading) {
     return (
       <div className="p-4 sm:p-6 space-y-4">
         <Skeleton className="h-8 w-28 mb-4" />
@@ -80,8 +178,8 @@ export default function SingleCustomerPage() {
     );
   }
 
-  // ---------------- Error / Empty State ----------------
-  if (error || !customer) {
+  // ────────── Error / Empty Customer State ──────────
+  if (customerError || !customer) {
     return (
       <div className="p-4 sm:p-6">
         <Button
@@ -109,7 +207,7 @@ export default function SingleCustomerPage() {
     );
   }
 
-  // ---------------- Page Content ----------------
+  // ────────── Page Content ──────────
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <Button onClick={() => router.back()} variant="outline">
@@ -132,7 +230,10 @@ export default function SingleCustomerPage() {
           <Button
             size="sm"
             className="flex-1 sm:flex-none"
-            onClick={() => setOpenBillDrawer(true)}
+            onClick={() => {
+              setSelectedItem(null);
+              setOpenBillDrawer(true);
+            }}
           >
             <Plus size={16} className="mr-2" /> Add Bill
           </Button>
@@ -140,7 +241,10 @@ export default function SingleCustomerPage() {
             size="sm"
             className="flex-1 sm:flex-none"
             variant="outline"
-            onClick={() => setOpenPaymentDrawer(true)}
+            onClick={() => {
+              setSelectedItem(null);
+              setOpenPaymentDrawer(true);
+            }}
           >
             <Plus size={16} className="mr-2" /> Add Payment
           </Button>
@@ -189,108 +293,209 @@ export default function SingleCustomerPage() {
         </Card>
       </div>
 
-      {/* Billing History */}
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Billing History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!bills || bills.length === 0 ? (
-              <Empty className="mt-4">
-                <EmptyMedia variant="icon">
-                  <FileText size={32} />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>No bills found</EmptyTitle>
-                  <EmptyDescription>
-                    You have not added any bills for {customer?.firstName ?? ""}{" "}
-                    yet.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <div className="space-y-2">
-                {bills.map((bill: Bill) => (
-                  <Card key={bill._id} className="border border-gray-200">
-                    <CardHeader>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">
-                          {new Date(bill.date).toLocaleDateString()}
-                        </span>
-                        <span className="font-bold">
-                          Rs {bill.total.toLocaleString()}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="list-disc ml-5">
-                        {bill.items.map((item: BillItem) => (
-                          <li key={item._id}>
-                            {item.quantity} x {item.name} ({item.size}) - Rs{" "}
-                            {item.total}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
+      {/* Bills Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText size={20} />
+            Billing History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {billsLoading ? (
+            <div className="space-y-2">
+              {Array(3)
+                .fill(0)
+                .map((_, idx) => (
+                  <Skeleton key={idx} className="h-12 w-full" />
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          ) : !bills || bills.length === 0 ? (
+            <Empty className="mt-4">
+              <EmptyMedia variant="icon">
+                <FileText size={32} />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle>No bills found</EmptyTitle>
+                <EmptyDescription>
+                  You have not added any bills for {customer?.firstName ?? ""}{" "}
+                  yet.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Delete</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bills.map((bill: Bill) => (
+                    <TableRow
+                      key={bill._id}
+                      onClick={() => handleEditBill(bill)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
+                      <TableCell>
+                        {new Date(bill.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {bill.items && bill.items.length > 0 ? (
+                            bill.items.length === 1 ? (
+                              bill.items[0].name
+                            ) : (
+                              <>
+                                {bill.items[0].name}
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  ... +{bill.items.length - 1}
+                                </span>
+                              </>
+                            )
+                          ) : (
+                            "No items"
+                          )}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        Rs {(bill.total || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteItem({ ...bill, type: "bill" });
+                          }}
+                          disabled={isDeleting}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Payment History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!payments || payments.length === 0 ? (
-              <Empty className="mt-4">
-                <EmptyMedia variant="icon">
-                  <MessageCircle size={32} />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>No payments found</EmptyTitle>
-                  <EmptyDescription>
-                    You have not recorded any payments for {customer.firstName}{" "}
-                    {customer.lastName} yet.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((payment) => (
-                  <div
-                    key={payment._id}
-                    className="flex justify-between border-b py-1"
-                  >
-                    <span>{new Date(payment.date).toLocaleDateString()}</span>
-                    <span className="font-semibold">
-                      Rs {payment.amount.toLocaleString()} ({payment.method})
-                    </span>
-                  </div>
+      {/* Payments Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle size={20} />
+            Payment History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {paymentsLoading ? (
+            <div className="space-y-2">
+              {Array(3)
+                .fill(0)
+                .map((_, idx) => (
+                  <Skeleton key={idx} className="h-12 w-full" />
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          ) : !payments || payments.length === 0 ? (
+            <Empty className="mt-4">
+              <EmptyMedia variant="icon">
+                <MessageCircle size={32} />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle>No payments found</EmptyTitle>
+                <EmptyDescription>
+                  You have not recorded any payments for {customer.firstName}{" "}
+                  {customer.lastName} yet.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead className="text-right">Delete</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((payment: Payment) => (
+                    <TableRow
+                      key={payment._id}
+                      onClick={() => handleEditPayment(payment)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
+                      <TableCell>
+                        {new Date(payment.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">
+                        Rs {(payment.amount || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm capitalize">
+                          {payment.method || "N/A"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteItem({ ...payment, type: "payment" });
+                          }}
+                          disabled={isDeleting}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Drawers / Dialogs */}
       <BillEntryDrawer
         open={openBillDrawer}
-        onOpenChange={setOpenBillDrawer}
-        customerId={customer._id} // required
-        customerFirstName={customer.firstName} // required
-        customerLastName={customer.lastName} // required
+        onOpenChange={(open) => {
+          setOpenBillDrawer(open);
+          if (!open) handleDrawerOpenChange(false);
+        }}
+        customerId={customer._id}
+        customerFirstName={customer.firstName}
+        customerLastName={customer.lastName}
+        selectedBill={
+          selectedItem?.type === "bill" ? (selectedItem.data as any) : undefined
+        }
       />
 
       <PaymentEntryDrawer
         open={openPaymentDrawer}
-        onOpenChange={setOpenPaymentDrawer}
+        onOpenChange={(open) => {
+          setOpenPaymentDrawer(open);
+          if (!open) handleDrawerOpenChange(false);
+        }}
         customerId={customer._id}
+        selectedPayment={
+          selectedItem?.type === "payment" ? (selectedItem.data as any) : undefined
+        }
       />
 
       <WhatsAppInvoiceDialog
@@ -299,6 +504,42 @@ export default function SingleCustomerPage() {
         customerName={customer.firstName + " " + customer.lastName}
         customerPhone={customer.phone}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteItem} onOpenChange={() => setDeleteItem(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {deleteItem?.type === "bill" ? "Delete Bill" : "Delete Payment"}
+            </DialogTitle>
+            <DialogDescription>
+              {deleteItem?.type === "bill"
+                ? `Are you sure you want to delete this bill for Rs ${deleteItem?.total?.toLocaleString()}? This action cannot be undone.`
+                : `Are you sure you want to delete this payment of Rs ${deleteItem?.amount?.toLocaleString()}? This action cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteItem(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={
+                deleteItem?.type === "bill"
+                  ? confirmDeleteBill
+                  : confirmDeletePayment
+              }
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
