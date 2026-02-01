@@ -112,7 +112,6 @@ export function PrintBillsDialog({
                 startDate: startDate!,
                 endDate: endDate!,
             })
-            toast.success('PDF downloaded successfully')
         } catch (error) {
             console.error('PDF generation error:', error)
             toast.error('Failed to generate PDF.')
