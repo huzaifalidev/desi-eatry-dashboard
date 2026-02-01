@@ -128,6 +128,7 @@ export function BillEntryDrawer({
       setIsLoading(true);
       await dispatch(
         createBill({
+          date: (billDate || new Date()).toISOString(),
           customerId,
           items: billItems.map((item) => ({
             menuId: item.menuId,

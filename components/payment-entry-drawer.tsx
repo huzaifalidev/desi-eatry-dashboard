@@ -91,6 +91,7 @@ export function PaymentEntryDrawer({
           customerId,
           amount: Number(amount),
           method,
+          date: paymentDate,
         }),
       ).unwrap()
       toast.success(
