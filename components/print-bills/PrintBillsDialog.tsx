@@ -162,158 +162,159 @@ export function PrintBillsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+
                 <DialogHeader>
                     <DialogTitle>Print Bills</DialogTitle>
                     <DialogDescription>
                         Select a date range to filter and print bills for {customerName}
                     </DialogDescription>
                 </DialogHeader>
+                <div className="flex-1 overflow-y-auto mt-4">
+                    {!showPreview ? (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Start Date */}
+                                <div className="space-y-2">
+                                    <Label>Start Date</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start text-left font-normal"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {startDate
+                                                    ? startDate.toLocaleDateString()
+                                                    : 'Pick a date'}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={startDate}
+                                                onSelect={setStartDate}
+                                                disabled={(date) => !isDateAvailable(date)}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
 
-                {!showPreview ? (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Start Date */}
-                            <div className="space-y-2">
-                                <Label>Start Date</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-start text-left font-normal"
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {startDate
-                                                ? startDate.toLocaleDateString()
-                                                : 'Pick a date'}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={startDate}
-                                            onSelect={setStartDate}
-                                            disabled={(date) => !isDateAvailable(date)}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                                {/* End Date */}
+                                <div className="space-y-2">
+                                    <Label>End Date</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start text-left font-normal"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {endDate ? endDate.toLocaleDateString() : 'Pick a date'}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={endDate}
+                                                onSelect={setEndDate}
+                                                disabled={(date) => !isDateAvailable(date)}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
                             </div>
 
-                            {/* End Date */}
+                            {/* Quick Actions */}
                             <div className="space-y-2">
-                                <Label>End Date</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-start text-left font-normal"
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {endDate ? endDate.toLocaleDateString() : 'Pick a date'}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={endDate}
-                                            onSelect={setEndDate}
-                                            disabled={(date) => !isDateAvailable(date)}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                                <Label className="text-xs text-muted-foreground">
+                                    Or select a quick range
+                                </Label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setQuickRange('thisMonth')}
+                                    >
+                                        This Month
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setQuickRange('lastMonth')}
+                                    >
+                                        Last Month
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setQuickRange('lastYear')}
+                                    >
+                                        Last Year
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setQuickRange('all')}
+                                    >
+                                        All Bills
+                                    </Button>
+                                </div>
                             </div>
                         </div>
-
-                        {/* Quick Actions */}
-                        <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">
-                                Or select a quick range
-                            </Label>
-                            <div className="grid grid-cols-4 gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setQuickRange('thisMonth')}
-                                >
-                                    This Month
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setQuickRange('lastMonth')}
-                                >
-                                    Last Month
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setQuickRange('lastYear')}
-                                >
-                                    Last Year
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setQuickRange('all')}
-                                >
-                                    All Bills
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <BillPreviewTable bills={filteredBills} />
-                )}
-
-                <DialogFooter className="gap-2">
-                    {showPreview ? (
-                        <>
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowPreview(false)}
-                                disabled={isGenerating}
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                onClick={handleGeneratePDF}
-                                disabled={isGenerating}
-                                className="gap-2"
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <Loader2 size={16} className="animate-spin" />
-                                        Generating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FileDown size={16} />
-                                        Download PDF
-                                    </>
-                                )}
-                            </Button>
-                        </>
                     ) : (
-                        <>
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    handleReset()
-                                    onOpenChange(false)
-                                }}
-                                disabled={isGenerating}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleGeneratePreview}
-                                disabled={isGenerating}
-                            >
-                                View Bills
-                            </Button>
-                        </>
+                        <BillPreviewTable bills={filteredBills} />
                     )}
-                </DialogFooter>
+                </div>
+                    <DialogFooter className="gap-2">
+                        {showPreview ? (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowPreview(false)}
+                                    disabled={isGenerating}
+                                >
+                                    Back
+                                </Button>
+                                <Button
+                                    onClick={handleGeneratePDF}
+                                    disabled={isGenerating}
+                                    className="gap-2"
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FileDown size={16} />
+                                            Download PDF
+                                        </>
+                                    )}
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        handleReset()
+                                        onOpenChange(false)
+                                    }}
+                                    disabled={isGenerating}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleGeneratePreview}
+                                    disabled={isGenerating}
+                                >
+                                    View Bills
+                                </Button>
+                            </>
+                        )}
+                    </DialogFooter>
             </DialogContent>
         </Dialog>
     )

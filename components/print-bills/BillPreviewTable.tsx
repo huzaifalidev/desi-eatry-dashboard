@@ -15,16 +15,25 @@ export function BillPreviewTable({ bills }: BillPreviewTableProps) {
     const totalAmount = bills.reduce((sum, bill) => sum + (bill.total || 0), 0)
 
     return (
-        <div className="space-y-4">
-            <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg flex flex-col h-[60vh]"> 
+            {/* flex-col to separate header, body, footer */}
+            
+            {/* Header */}
+            <div className="flex-shrink-0">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className="bg-background sticky top-0 z-10">
                             <TableHead>Date</TableHead>
                             <TableHead>Items</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
+                </Table>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto">
+                <Table>
                     <TableBody>
                         {bills.map((bill) => (
                             <TableRow key={bill._id}>
@@ -51,11 +60,11 @@ export function BillPreviewTable({ bills }: BillPreviewTableProps) {
                         ))}
                     </TableBody>
                 </Table>
-                <div className="bg-muted p-4 text-right border-t">
-                    <span className="text-lg font-bold">
-                        Total: Rs {totalAmount.toLocaleString()}
-                    </span>
-                </div>
+            </div>
+
+            {/* Footer / Grand Total */}
+            <div className="flex-shrink-0 bg-muted p-4 border-t text-right font-bold">
+                Total: Rs {totalAmount.toLocaleString()}
             </div>
         </div>
     )

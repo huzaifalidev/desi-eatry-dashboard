@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { autoTable } from 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 interface GenerateBillPDFProps {
     bills: any[]
@@ -9,31 +9,90 @@ interface GenerateBillPDFProps {
     endDate: Date
 }
 
-// Helper to convert image URL to base64
+// ======================
+// IMAGE TO BASE64
+// ======================
 const toBase64 = async (url: string): Promise<string> => {
-    try {
-        const res = await fetch(url)
-        const blob = await res.blob()
-        return new Promise<string>((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onloadend = () => resolve(reader.result as string)
-            reader.onerror = reject
-            reader.readAsDataURL(blob)
-        })
-    } catch (error) {
-        console.warn(`Failed to load image: ${url}`, error)
-        throw error
-    }
+    const res = await fetch(url)
+    const blob = await res.blob()
+    return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+    })
 }
 
-// Helper to get date string
+// ======================
+// DATE FORMAT
+// ======================
 const getDateString = (date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
 }
 
+// ======================
+// COLORS
+// ======================
+const colors = {
+    primary: [220, 38, 38],
+    secondary: [249, 115, 22],
+    dark: [31, 41, 55],
+    medium: [75, 85, 99],
+    light: [243, 244, 246],
+    lightRed: [253, 242, 242],
+}
+
+// ======================
+// FOOTER
+// ======================
+function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number, margin: number) {
+    const y = pageHeight - 15
+
+    doc.setDrawColor(...colors.primary)
+    doc.setLineWidth(0.8)
+    doc.line(margin, y - 5, pageWidth - margin, y - 5)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(...colors.dark)
+    doc.text('Thank you for choosing Desi Eatry!', pageWidth / 2, y, { align: 'center' })
+
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(8)
+    doc.setTextColor(...colors.medium)
+    doc.text('We appreciate your business', pageWidth / 2, y + 4, { align: 'center' })
+}
+
+// ======================
+// WATERMARK
+// ======================
+function addWatermark(
+    doc: jsPDF,
+    imageBase64: string,
+    pageWidth: number,
+    pageHeight: number
+) {
+    const GState = (doc as any).GState
+    if (!GState) return
+
+    const gState = new GState({ opacity: 0.08 })
+    doc.setGState(gState)
+
+    const size = 90
+    const x = (pageWidth - size) / 2
+    const y = (pageHeight - size) / 2
+
+    doc.addImage(imageBase64, 'PNG', x, y, size, size)
+
+    doc.setGState(new GState({ opacity: 1 }))
+}
+
+// ======================
+// MAIN FUNCTION
+// ======================
 export async function generateBillPDF({
     bills,
     customerName,
@@ -45,226 +104,135 @@ export async function generateBillPDF({
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 15
-    let yPosition = 20
+    let yPosition = 15
 
+    const logoBase64 = await toBase64('/logo.png')
     // ======================
-    // HEADER SECTION
+    // HEADER (FIXED)
     // ======================
+    const HEADER_HEIGHT = 65
 
-    // Logo (centered)
-    try {
-        const logoBase64 = await toBase64('/logo.png')
-        const logoSize = 35
-        const logoX = (pageWidth - logoSize) / 2
-        doc.addImage(logoBase64, 'PNG', logoX, yPosition, logoSize, logoSize)
-        yPosition += logoSize + 8
-    } catch (e) {
-        console.warn('Logo not found, skipping')
-        yPosition += 5
-    }
+    // Red header background
+    doc.setFillColor(...colors.primary)
+    doc.rect(0, 0, pageWidth, HEADER_HEIGHT, 'F')
 
-    // Brand Name (centered)
+    // Orange strip
+    doc.setFillColor(...colors.secondary)
+    doc.rect(0, HEADER_HEIGHT - 5, pageWidth, 5, 'F')
+
+    // Logo (top-left, centered vertically)
+    const logoSize = 40
+    const logoY = (HEADER_HEIGHT - logoSize) / 2
+    doc.addImage(logoBase64, 'PNG', margin, logoY, logoSize, logoSize)
+
+    // Brand name
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(20)
-    doc.setTextColor(31, 41, 55) // Dark gray
-    doc.text('Desi Eatry', pageWidth / 2, yPosition, { align: 'center' })
-    yPosition += 8
+    doc.setFontSize(24)
+    doc.setTextColor(255, 255, 255)
+    doc.text('Desi Eatry', pageWidth / 2, 30, { align: 'center' })
 
-    // Tagline
-    doc.setFont('helvetica', 'italic')
-    doc.setFontSize(10)
-    doc.setTextColor(107, 114, 128) // Medium gray
-    doc.text('"Delicious food delivered to your doorstep!"', pageWidth / 2, yPosition, { align: 'center' })
-    yPosition += 10
-
-    // ======================
-    // CONTACT SECTION (with icons)
-    // ======================
-
-    const iconSize = 5
-    const contactStartY = yPosition
-    
-    // WhatsApp
-    try {
-        const whatsappBase64 = await toBase64('/icons/whatsapp.png')
-        const whatsappX = pageWidth / 2 - 30
-        doc.addImage(whatsappBase64, 'PNG', whatsappX, yPosition - 3, iconSize, iconSize)
-        
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(11)
-        doc.setTextColor(0, 0, 0)
-        doc.text('0345-3562228', whatsappX + iconSize + 2, yPosition)
-    } catch (e) {
-        console.warn('WhatsApp icon not found')
-    }
-
-    // Instagram
-    try {
-        const instagramBase64 = await toBase64('/icons/instagram.png')
-        const instagramX = pageWidth / 2 + 10
-        doc.addImage(instagramBase64, 'PNG', instagramX, yPosition - 3, iconSize, iconSize)
-        
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(11)
-        doc.setTextColor(0, 0, 0)
-        doc.text('@eatry.desi', instagramX + iconSize + 2, yPosition)
-    } catch (e) {
-        console.warn('Instagram icon not found')
-    }
-
-    yPosition += 10
-
-    // Horizontal line separator
-    doc.setDrawColor(229, 231, 235)
-    doc.setLineWidth(0.5)
-    doc.line(margin, yPosition, pageWidth - margin, yPosition)
-    yPosition += 8
-
-    // ======================
-    // CUSTOMER & DATE INFO
-    // ======================
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(12)
-    doc.setTextColor(31, 41, 55)
-    doc.text('Bill Statement', margin, yPosition)
-    yPosition += 6
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    doc.setTextColor(75, 85, 99)
-    doc.text(`Customer: ${customerName}`, margin, yPosition)
-    yPosition += 5
-    doc.text(`Phone: ${customerPhone}`, margin, yPosition)
-    yPosition += 5
-    doc.text(`Duration: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, margin, yPosition)
-    yPosition += 10
-
-    // ======================
-    // BILLS TABLE
-    // ======================
-
-    const tableData = bills.map((bill) => [
-        new Date(bill.date).toLocaleDateString(),
-        bill.items && bill.items.length > 0
-            ? bill.items
-                  .map(
-                      (item: any) =>
-                          `${item.name} (${item.size}, ${item.quantity} ${item.unit}) - Rs ${item.total.toLocaleString()}`
-                  )
-                  .join('\n')
-            : 'No items',
-        `Rs ${(bill.total || 0).toLocaleString()}`,
-    ])
-
-    autoTable(doc, {
-        head: [['Date', 'Items', 'Amount']],
-        body: tableData,
-        startY: yPosition,
-        margin: { left: margin, right: margin },
-        headStyles: {
-            fillColor: [59, 130, 246], // Blue
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-            fontSize: 11,
-            halign: 'left',
-        },
-        bodyStyles: {
-            fontSize: 9,
-            cellPadding: 4,
-            textColor: [31, 41, 55],
-        },
-        columnStyles: {
-            0: { cellWidth: 30 },
-            1: { cellWidth: 'auto' },
-            2: { cellWidth: 35, halign: 'right' },
-        },
-        alternateRowStyles: {
-            fillColor: [248, 250, 252], // Light gray
-        },
-        styles: {
-            cellWidth: 'wrap',
-            lineColor: [229, 231, 235],
-            lineWidth: 0.1,
-        },
-    })
-
-    // ======================
-    // TOTAL AMOUNT
-    // ======================
-
-    const totalAmount = bills.reduce((sum, bill) => sum + (bill.total || 0), 0)
-    const finalY = (doc as any).lastAutoTable?.finalY || yPosition + 50
-
-    // Total box
-    doc.setFillColor(239, 246, 255) // Light blue background
-    doc.rect(pageWidth - margin - 60, finalY + 5, 60, 12, 'F')
-    
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(14)
-    doc.setTextColor(31, 41, 55)
-    doc.text('Grand Total:', pageWidth - margin - 58, finalY + 12)
-    doc.setTextColor(59, 130, 246) // Blue
-    doc.text(`Rs ${totalAmount.toLocaleString()}`, pageWidth - margin - 2, finalY + 12, { align: 'right' })
-
-    // ======================
-    // TERMS & CONDITIONS
-    // ======================
-
-    let termsY = finalY + 25
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(10)
-    doc.setTextColor(31, 41, 55)
-    doc.text('Terms & Conditions:', margin, termsY)
-    termsY += 6
-
-    const terms = [
-        '• Orders will be delivered within 45 minutes of confirmation.',
-        '• Please check your order upon receipt.',
-        '• Contact us on WhatsApp for any order changes or cancellations.',
-        // '• We are not responsible for delays due to traffic or weather conditions.',
-        // '• All prices are in PKR and include applicable taxes.',
-    ]
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(75, 85, 99)
-
-    terms.forEach((line) => {
-        doc.text(line, margin, termsY)
-        termsY += 4
-    })
-
-    // ======================
-    // FOOTER
-    // ======================
-
-    const footerY = pageHeight - 20
-
-    // Decorative line
-    doc.setDrawColor(59, 130, 246)
-    doc.setLineWidth(1)
-    doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
-
-    // Thank you message
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(11)
-    doc.setTextColor(31, 41, 55)
-    doc.text('Thank you for choosing Desi Eatry!', pageWidth / 2, footerY, { align: 'center' })
-
+    // Subtitle (clean, NOT on orange strip)
     doc.setFont('helvetica', 'italic')
     doc.setFontSize(9)
-    doc.setTextColor(107, 114, 128)
-    // doc.text('We appreciate your business and look forward to serving you again.', pageWidth / 2, footerY + 5, {
-    //     align: 'center',
-    // })
+    doc.text(
+        '"Delicious food delivered to your doorstep!"',
+        pageWidth / 2,
+        38,
+        { align: 'center' }
+    )
+
+    // Start content immediately after header
+    yPosition = HEADER_HEIGHT + 5
 
     // ======================
-    // SAVE PDF
+    // CUSTOMER INFO
     // ======================
+    doc.setFillColor(...colors.light)
+    doc.roundedRect(margin, yPosition, pageWidth - margin * 2, 22, 2, 2, 'F')
 
+    yPosition += 6
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(...colors.primary)
+    doc.text('Bill Statement', margin + 3, yPosition)
+
+    yPosition += 6
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(...colors.dark)
+    doc.text(`Customer: ${customerName}`, margin + 3, yPosition)
+
+    yPosition += 5
+    doc.text(`Phone: ${customerPhone}`, margin + 3, yPosition)
+
+    yPosition += 5
+    doc.text(
+        `Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
+        margin + 3,
+        yPosition
+    )
+
+    yPosition += 10
+
+    // ======================
+    // WATERMARK BEFORE TABLE
+    // ======================
+    addWatermark(doc, logoBase64, pageWidth, pageHeight)
+
+    // ======================
+    // TABLE
+    // ======================
+    autoTable(doc, {
+        head: [['Date', 'Items', 'Amount']],
+        body: bills.map((bill) => [
+            new Date(bill.date).toLocaleDateString(),
+            bill.items?.length
+                ? bill.items
+                    .map(
+                        (i: any) =>
+                            `${i.name} (${i.size}, ${i.quantity} ${i.unit}) - Rs ${i.total}`
+                    )
+                    .join('\n')
+                : 'No items',
+            `Rs ${(bill.total || 0).toLocaleString()}`,
+        ]),
+        startY: yPosition,
+        margin: { left: margin, right: margin, bottom: 60 },
+        theme: 'grid',
+        headStyles: {
+            fillColor: colors.primary,
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+        },
+        bodyStyles: {
+            fontSize: 8.5,
+            textColor: colors.dark,
+        },
+        alternateRowStyles: {
+            fillColor: colors.lightRed,
+        },
+        didDrawPage: () => {
+            addWatermark(doc, logoBase64, pageWidth, pageHeight)
+            addFooter(doc, pageWidth, pageHeight, margin)
+        },
+    })
+
+    // ======================
+    // TOTAL
+    // ======================
+    const total = bills.reduce((s, b) => s + (b.total || 0), 0)
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.setTextColor(...colors.primary)
+    doc.text(`Grand Total: Rs ${total.toLocaleString()}`, pageWidth - margin, finalY, {
+        align: 'right',
+    })
+
+    // ======================
+    // SAVE
+    // ======================
     const safeName = (customerName || 'Customer').replace(/\s+/g, '_')
-    const fileName = `${safeName}_Bills_${getDateString(startDate)}_to_${getDateString(endDate)}.pdf`
-    doc.save(fileName)
+    doc.save(`${safeName}_Bills_${getDateString(startDate)}_to_${getDateString(endDate)}.pdf`)
 }
