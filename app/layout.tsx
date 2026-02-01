@@ -2,11 +2,16 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import ClientProviders from "./ClientProviders";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+export const metadata = {
+  icons: {
+    icon: "/favicon/favicon.png",
+  },
+};
 
 export default function RootLayout({
   children,
@@ -15,10 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        suppressHydrationWarning
-        className={`${inter.className} antialiased`}
-      >
+      <body className={`${inter.className} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ClientProviders>
             {children}

@@ -10,11 +10,13 @@ import {
   FileText,
   Trash2,
   MessageCircle,
+  Printer,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PrintBillsDialog } from "@/components/print-bills";
 import {
   Table,
   TableBody,
@@ -76,6 +78,7 @@ export default function SingleCustomerPage() {
   const [openBillDrawer, setOpenBillDrawer] = useState(false);
   const [openPaymentDrawer, setOpenPaymentDrawer] = useState(false);
   const [openWhatsApp, setOpenWhatsApp] = useState(false);
+  const [openPrintBills, setOpenPrintBills] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -226,10 +229,19 @@ export default function SingleCustomerPage() {
           </p>
           <p className="text-sm text-muted-foreground">{customer.address}</p>
         </div>
-        <div className="flex gap-2 mt-2 sm:mt-0">
+
+        <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
           <Button
             size="sm"
-            className="flex-1 sm:flex-none"
+            variant="outline"
+            onClick={() => setOpenPrintBills(true)}
+            disabled={!bills || bills.length === 0}
+          >
+            <Printer size={16} className="mr-2" /> Print Bills
+          </Button>
+
+          <Button
+            size="sm"
             onClick={() => {
               setSelectedItem(null);
               setOpenBillDrawer(true);
@@ -237,9 +249,9 @@ export default function SingleCustomerPage() {
           >
             <Plus size={16} className="mr-2" /> Add Bill
           </Button>
+
           <Button
             size="sm"
-            className="flex-1 sm:flex-none"
             variant="outline"
             onClick={() => {
               setSelectedItem(null);
@@ -249,7 +261,9 @@ export default function SingleCustomerPage() {
             <Plus size={16} className="mr-2" /> Add Payment
           </Button>
         </div>
+
       </div>
+
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -540,6 +554,15 @@ export default function SingleCustomerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Print Bills Dialog */}
+      <PrintBillsDialog
+        open={openPrintBills}
+        onOpenChange={setOpenPrintBills}
+        bills={bills}
+        customerName={`${customer?.firstName} ${customer?.lastName}`}
+        customerPhone={customer?.phone}
+      />
     </div>
   );
 }
