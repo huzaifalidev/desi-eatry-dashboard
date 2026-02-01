@@ -64,7 +64,7 @@ export function BillEntryDrawer({
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [selectedSize, setSelectedSize] = useState<"half" | "full">("full");
   const [quantity, setQuantity] = useState("");
-  const [billDate, setBillDate] = useState<Date | undefined>(new Date());
+  const [billDate, setBillDate] = useState<Date | undefined>();
   const [billItems, setBillItems] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -91,7 +91,7 @@ export function BillEntryDrawer({
       setBillItems(existingItems);
     } else if (open) {
       setIsEditMode(false);
-      setBillDate(new Date());
+      setBillDate(undefined);
       setBillItems([]);
       setSelectedMenuId("");
       setQuantity("");
@@ -152,6 +152,7 @@ export function BillEntryDrawer({
   };
 
   const handleSaveBill = async () => {
+    if (!billDate) return toast.error("Please select a bill date")
     if (!billItems.length) return toast.error("Please add items");
 
     try {
@@ -275,21 +276,26 @@ export function BillEntryDrawer({
               if (!menuItem || menuItem.half === undefined) return null;
 
               return (
-                <div className="space-y-2">
-                  <Label>Size</Label>
-                  <Select
-                    value={selectedSize}
-                    onValueChange={(v) => setSelectedSize(v as "half" | "full")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {menuItem.half && <SelectItem value="half">Half</SelectItem>}
-                      <SelectItem value="full">Full</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                menuItem.half && (
+                  <>
+                    <div className="space-y-2">
+
+                      <Label>Size</Label>
+                      <Select
+                        value={selectedSize}
+                        onValueChange={(v) => setSelectedSize(v as "half" | "full")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="half">Half</SelectItem>
+                          <SelectItem value="full">Full</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )
               );
             })()}
 
@@ -336,7 +342,7 @@ export function BillEntryDrawer({
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell className="capitalize">{item.size}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>{item.unit.charAt(0).toUpperCase() + item.unit.slice(1)}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell className="text-right">
                         Rs {item.total.toLocaleString()}

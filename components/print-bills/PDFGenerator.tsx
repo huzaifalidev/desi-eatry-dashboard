@@ -93,7 +93,7 @@ export async function generateBillPDF({
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(11)
         doc.setTextColor(0, 0, 0)
-        doc.text('0345-356228', whatsappX + iconSize + 2, yPosition)
+        doc.text('0345-3562228', whatsappX + iconSize + 2, yPosition)
     } catch (e) {
         console.warn('WhatsApp icon not found')
     }
