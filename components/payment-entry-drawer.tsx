@@ -16,7 +16,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetClose,
 } from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,7 +49,7 @@ export function PaymentEntryDrawer({
 
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('cash')
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date())
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
 
@@ -65,12 +64,12 @@ export function PaymentEntryDrawer({
       setIsEditMode(true)
       setAmount(selectedPayment.amount?.toString() || '')
       setMethod(selectedPayment.method || 'cash')
-      setPaymentDate(new Date(selectedPayment.date))
+      setPaymentDate(selectedPayment?.date ? new Date(selectedPayment.date) : undefined)
     } else if (open) {
       setIsEditMode(false)
       setAmount('')
       setMethod('cash')
-      setPaymentDate(new Date())
+      setPaymentDate(undefined)
     }
   }, [open, selectedPayment])
 
@@ -96,7 +95,10 @@ export function PaymentEntryDrawer({
   // ---------- submit ----------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    if (!paymentDate) {
+      toast.error('Please select a payment date')
+      return
+    }
     if (!amount || Number(amount) <= 0) {
       toast.error('Please enter a valid amount')
       return
@@ -131,13 +133,13 @@ export function PaymentEntryDrawer({
           `Payment of Rs ${Number(amount).toLocaleString()} recorded`,
         )
       }
-      
+      setPaymentDate(undefined)
       setAmount('')
       setMethod('cash')
       await dispatch(fetchCustomerById(customerId)).unwrap()
       onOpenChange(false)
     } catch (err: any) {
-      toast.error(err || 'Failed to record payment')
+      toast.error(err?.msg || 'Failed to record payment')
     } finally {
       setIsLoading(false)
     }
@@ -185,6 +187,7 @@ export function PaymentEntryDrawer({
                   mode="single"
                   selected={paymentDate}
                   onSelect={setPaymentDate}
+                  defaultMonth={paymentDate}
                   disabled={isLoading}
                 />
               </PopoverContent>
@@ -232,7 +235,7 @@ export function PaymentEntryDrawer({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !amount}>
+            <Button type="submit" disabled={isLoading || !amount || !paymentDate}>
               {isLoading && <Spinner />} {isEditMode ? "Update Payment" : "Record Payment"}
             </Button>
           </div>
