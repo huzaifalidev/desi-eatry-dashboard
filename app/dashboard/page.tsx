@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { Plus, Users, TrendingUp, AlertCircle, Package, DollarSign, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,15 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  mockCustomers,
-  mockBills,
-  mockPayments,
-  mockInventory,
-  mockPurchases,
-} from "@/lib/mock-data";
 import { BillEntryDrawer } from "@/components/bill-entry-drawer";
 import {
   Breadcrumb,
@@ -29,42 +21,96 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { InsightsCards } from "@/components/dashboard/insights-cards";
+import { InsightsCharts } from "@/components/dashboard/insights-charts";
 import { fetchMenuItems } from "@/redux/slices/menu-slice";
 import { fetchAllCustomers } from "@/redux/slices/customer-slice";
-import {fetchExpenses} from "@/redux/slices/expense-slice";
-import { useAppDispatch } from "@/hooks/redux-hooks";
+import { fetchExpenses } from "@/redux/slices/expense-slice";
+import { RootState } from "@/redux/store/store";
+import type { AppDispatch } from "@/redux/store/store";
+import { fetchAllPayments } from "@/redux/slices/payment-slice";
 
 export default function DashboardPage() {
   const [openDrawer, setOpenDrawer] = useState(false);
-  const dispatch = useAppDispatch();
-  // Calculate KPIs
-  const totalCustomers = mockCustomers.length;
-  const totalPaid = mockPayments.reduce((sum, p) => sum + p.amount, 0);
-  const totalBilled = mockCustomers.reduce((sum, c) => sum + c.totalBilled, 0);
-  const totalOutstanding = mockCustomers.reduce((sum, c) => sum + c.balance, 0);
-  const totalInventoryItems = mockInventory.reduce(
-    (sum, i) => sum + i.stock,
-    0,
-  );
-  const lowStockCount = mockInventory.filter(
-    (i) => i.stock < i.minStock,
-  ).length;
-  const monthlyPurchases = mockPurchases.length;
-  const uniqueCustomersThisMonth = new Set(mockBills.map((b) => b.customerId))
-    .size;
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Get data from Redux
+  const { customers, loading: customersLoading } = useSelector((state: RootState) => state.customer);
+  const { items: menuItems, loading: menuLoading } = useSelector((state: RootState) => state.menu);
+  const { items: expenses, loading: expensesLoading } = useSelector((state: RootState) => state.expense);
+
+  const isLoading = customersLoading || menuLoading || expensesLoading;
+
+  // Calculate KPIs from Redux data
+  const totalCustomers = customers.length;
+  
+  const totalBilled = customers.reduce((sum, c) => sum + (c.summary?.totalBilled || 0), 0);
+  const totalPaid = customers.reduce((sum, c) => sum + (c.summary?.totalPaid || 0), 0);
+  const totalOutstanding = customers.reduce((sum, c) => sum + (c.summary?.balance || 0), 0);
+
+  const totalExpenses = expenses.reduce((sum: number, e) => sum + (e.totalAmount || 0), 0);
+  const expenseCount = expenses.length;
+
+  // Customer balance insights
+  const positiveBalanceCount = customers.filter((c) => (c.summary?.balance || 0) > 0).length;
+  const zeroBalanceCount = customers.filter((c) => (c.summary?.balance || 0) === 0).length;
+  const negativeBalanceCount = customers.filter((c) => (c.summary?.balance || 0) < 0).length;
+
+  const balanceDistributionData = [
+    { name: 'Outstanding', value: positiveBalanceCount, fill: '#dc2626' },
+    { name: 'Settled', value: zeroBalanceCount, fill: '#6b7280' },
+    { name: 'Credited', value: negativeBalanceCount, fill: '#16a34a' },
+  ].filter((d) => d.value > 0);
+
+  // Expense breakdown by type
+  const expenseByType = expenses.reduce((acc: any[], exp) => {
+    const existing = acc.find((e: any) => e.name === exp.type);
+    if (existing) {
+      existing.value += exp.totalAmount;
+    } else {
+      acc.push({ name: exp.type, value: exp.totalAmount, fill: '#8b5cf6' });
+    }
+    return acc;
+  }, []);
+
+  // Calculate sales per day from bills
+  const salesPerDay = customers.reduce((acc: any[], customer) => {
+    (customer.bills || []).forEach((bill) => {
+      const billDate = bill.date ? new Date(bill.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown';
+      const existing = acc.find((item) => item.date === billDate);
+      if (existing) {
+        existing.sales += bill.total || 0;
+      } else {
+        acc.push({ date: billDate, sales: bill.total || 0 });
+      }
+    });
+    return acc;
+  }, []).sort((a: any, b: any) => {
+    // Sort by date
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return dateA - dateB;
+  }).slice(-30); // Last 30 days
 
   useEffect(() => {
     const fetchData = async () => {
-      await dispatch(fetchMenuItems()).unwrap();
-      await dispatch(fetchAllCustomers()).unwrap();
-      await dispatch(fetchExpenses()).unwrap();
+      try {
+        await Promise.all([
+          dispatch(fetchMenuItems()).unwrap(),
+          dispatch(fetchAllCustomers()).unwrap(),
+          dispatch(fetchExpenses()).unwrap(),
+          dispatch(fetchAllPayments()).unwrap(),
+        ]);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      }
     };
     fetchData();
-  }, [])
+  }, [dispatch]);
 
   return (
     <div className="p-6 space-y-6">
-      {/* KPI Cards */}
+      {/* Header */}
       <div className="flex flex-col justify-between gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-pretty">
           Dashboard
@@ -83,105 +129,77 @@ export default function DashboardPage() {
           Here&apos;s a summary of your business.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Customers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCustomers}</div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Billed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              Rs {totalBilled.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPI Cards - Using InsightsCards Component */}
+      <InsightsCards
+        cards={[
+          {
+            title: 'Total Customers',
+            value: totalCustomers,
+            count: totalCustomers,
+            icon: Users,
+          },
+          {
+            title: 'Total Billed',
+            value: totalBilled,
+            valuePrefix: 'Rs ',
+            icon: DollarSign,
+          },
+          {
+            title: 'Total Paid',
+            value: totalPaid,
+            valuePrefix: 'Rs ',
+            icon: TrendingUp,
+          },
+          {
+            title: 'Outstanding',
+            value: totalOutstanding,
+            valuePrefix: 'Rs ',
+            icon: AlertCircle,
+          },
+          {
+            title: 'Menu Items',
+            value: menuItems.length,
+            count: menuItems.length,
+            icon: Package,
+          },
+          {
+            title: 'Total Expenses',
+            value: totalExpenses,
+            valuePrefix: 'Rs ',
+            icon: ShoppingCart,
+          },
+        ]}
+        loading={isLoading}
+      />
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Paid
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              Rs {totalPaid.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Outstanding
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">
-                Rs {totalOutstanding.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Items (Inventory)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalInventoryItems}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Low Stock Alerts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">
-                {lowStockCount}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Monthly Purchases
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{monthlyPurchases}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Repeat Customers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {uniqueCustomersThisMonth}
-              </div>
-            </CardContent>
-          </Card> */}
-      </div>
+      {/* Charts Section */}
+      <InsightsCharts
+        areaCharts={[
+          {
+            title: 'Sales Per Day (Last 30 Days)',
+            data: salesPerDay,
+            dataKey: 'sales',
+            xKey: 'date',
+            stroke: '#3b82f6',
+            fill: '#3b82f6',
+          },
+        ]}
+        pieCharts={[
+          {
+            title: 'Customer Balance Distribution',
+            data: balanceDistributionData,
+            dataKey: 'value',
+            nameKey: 'name',
+          },
+          ...(expenseByType.length > 0 ? [{
+            title: 'Expenses by Type',
+            data: expenseByType,
+            dataKey: 'value',
+            nameKey: 'name',
+          }] : []),
+        ]}
+      />
 
       {/* Quick Billing Panel */}
       <Card>
@@ -195,41 +213,49 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Last Bill</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                  <TableHead className="text-center">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockCustomers.map((customer) => {
-                  const lastBill = mockBills
-                    .filter((b) => b.customerId === customer._id)
-                    .sort(
-                      (a, b) =>
-                        new Date(b.date).getTime() -
-                        new Date(a.date).getTime(),
-                    )[0];
-
-                  return (
+          {isLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+              ))}
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No customers yet. Create a customer to get started.
+            </div>
+          ) : (
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead className="text-right">Total Billed</TableHead>
+                    <TableHead className="text-right">Total Paid</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customers.slice(0, 5).map((customer) => (
                     <TableRow key={customer._id}>
                       <TableCell className="font-medium">
-                        {customer.firstName} {customer.lastName}{" "}
+                        {customer.firstName} {customer.lastName}
                       </TableCell>
-                      <TableCell>{lastBill?.date || "N/A"}</TableCell>
                       <TableCell className="text-right">
+                        Rs {(customer.summary?.totalBilled || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-green-600">
+                        Rs {(customer.summary?.totalPaid || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
                         <span
                           className={
-                            customer.balance > 0
-                              ? "text-destructive font-semibold"
-                              : ""
+                            (customer.summary?.balance || 0) > 0
+                              ? "text-destructive"
+                              : "text-green-600"
                           }
                         >
-                          Rs {customer.balance.toLocaleString()}
+                          Rs {(customer.summary?.balance || 0).toLocaleString()}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
@@ -238,103 +264,166 @@ export default function DashboardPage() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Customers */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Recent Bills</CardTitle>
+            <CardTitle className="text-base">Recent Customers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {mockBills.slice(0, 3).map((bill) => {
-                const customer = mockCustomers.find(
-                  (c) => c._id === bill.customerId,
-                );
-                return (
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+                ))}
+              </div>
+            ) : customers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No customers yet
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {customers.slice(0, 3).map((customer) => (
                   <div
-                    key={bill.id}
+                    key={customer._id}
                     className="flex items-center justify-between pb-2 border-b"
                   >
                     <div>
-                      <p className="font-medium text-sm">{customer?.firstName} {customer?.lastName}</p>
+                      <p className="font-medium text-sm">
+                        {customer.firstName} {customer.lastName}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {bill.date}
+                        {customer.phone}
                       </p>
                     </div>
-                    <p className="font-semibold">
-                      Rs {bill.total.toLocaleString()}
-                    </p>
+                    <div className="text-right">
+                      <p className="font-semibold text-sm">
+                        Rs {(customer.summary?.balance || 0).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {(customer.summary?.balance || 0) > 0 ? 'Outstanding' : 'Settled'}
+                      </p>
+                    </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Expenses */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Recent Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 bg-muted rounded animate-pulse" />
+                ))}
+              </div>
+            ) : expenses.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No expenses recorded
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {expenses.slice(0, 3).map((expense) => (
+                  <div
+                    key={expense._id}
+                    className="flex items-center justify-between pb-2 border-b"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{expense.item}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {expense.type}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-sm">
+                        Rs {(expense.totalAmount || 0).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {expense.quantity} {expense.quantity === 1 ? 'unit' : 'units'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Customers Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Outstanding Balance:</span>
+              <span className="font-semibold">{positiveBalanceCount}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Settled:</span>
+              <span className="font-semibold">{zeroBalanceCount}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Credited:</span>
+              <span className="font-semibold">{negativeBalanceCount}</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent Payments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockPayments.slice(0, 3).map((payment) => {
-                  const customer = mockCustomers.find(
-                    (c) => c._id === payment.customerId,
-                  );
-                  return (
-                    <div
-                      key={payment._id}
-                      className="flex items-center justify-between pb-2 border-b"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{customer?.firstName} {customer?.lastName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {payment.date}
-                        </p>
-                      </div>
-                      <p className="font-semibold text-green-600">
-                        +Rs {payment.amount.toLocaleString()}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card> */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Payments Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total Paid:</span>
+              <span className="font-semibold">Rs {totalPaid.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Pending Payment:</span>
+              <span className="font-semibold">Rs {totalOutstanding.toLocaleString()}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recent Purchases</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockPurchases.slice(0, 3).map((purchase) => (
-                  <div
-                    key={purchase.id}
-                    className="flex items-center justify-between pb-2 border-b"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{purchase.item}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {purchase.date}
-                      </p>
-                    </div>
-                    <p className="font-semibold">
-                      Rs {purchase.cost.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card> */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Expense Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total Expenses:</span>
+              <span className="font-semibold">{expenseCount}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total Amount:</span>
+              <span className="font-semibold">Rs {totalExpenses.toLocaleString()}</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <BillEntryDrawer

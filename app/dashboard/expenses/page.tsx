@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Plus, Edit, Trash2, TrendingUp } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, Package, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -23,22 +23,9 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogHeader,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogHeader, DialogFooter } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Empty,
-  EmptyHeader,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyMedia,
-} from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyMedia } from '@/components/ui/empty'
 
 import {
   fetchExpenses,
@@ -48,6 +35,7 @@ import {
   type ExpenseItem,
 } from '@/redux/slices/expense-slice'
 import type { RootState, AppDispatch } from '@/redux/store/store'
+import { InsightsCards } from '@/components/dashboard/insights-cards'
 
 export default function ExpensePage() {
   const dispatch = useDispatch<AppDispatch>()
@@ -58,12 +46,12 @@ export default function ExpensePage() {
   const [deleteItem, setDeleteItem] = useState<ExpenseItem | null>(null)
   const [isDeleteLoading, setIsDeleteLoading] = useState(false)
 
-  // ================ Load Expenses ================
+  // Load Expenses
   useEffect(() => {
     dispatch(fetchExpenses())
   }, [dispatch])
 
-  // ================ Create / Update ================
+  // Create / Update
   const handleCreate = async (expenseData: any) => {
     try {
       await dispatch(addExpense(expenseData)).unwrap()
@@ -85,7 +73,7 @@ export default function ExpensePage() {
     }
   }
 
-  // ================ Delete ================
+  // Delete
   const confirmDelete = async () => {
     if (!deleteItem) return
     try {
@@ -100,44 +88,28 @@ export default function ExpensePage() {
     }
   }
 
-  // ================ Calculate Insights ================
-  const totalExpenses = (items || []).reduce(
-    (sum, item) => sum + (item.totalAmount || 0),
-    0
-  )
-  const inventoryTotal = (items || [])
-    .filter((item) => item.type === 'inventory')
-    .reduce((sum, item) => sum + (item.totalAmount || 0), 0)
-  const expenseTotal = (items || [])
-    .filter((item) => item.type === 'expense')
-    .reduce((sum, item) => sum + (item.totalAmount || 0), 0)
+  // Insights calculations
+  const totalExpenses = items.reduce((sum, item) => sum + (item.totalAmount || 0), 0)
+  const inventoryTotal = items.filter(i => i.type === 'inventory').reduce((sum, item) => sum + (item.totalAmount || 0), 0)
+  const expenseTotal = items.filter(i => i.type === 'expense').reduce((sum, item) => sum + (item.totalAmount || 0), 0)
 
-  // ================ Table Skeleton ================
+  const cards = [
+    { title: 'Total Expenses', value: totalExpenses, count: items.length, icon: TrendingUp, valuePrefix: 'Rs' },
+    { title: 'Inventory Costs', value: inventoryTotal, count: items.filter(i => i.type === 'inventory').length, icon: Package, valuePrefix: 'Rs' },
+    { title: 'Other Expenses', value: expenseTotal, count: items.filter(i => i.type === 'expense').length, icon: DollarSign, valuePrefix: 'Rs' },
+  ]
+
+  // Table Skeleton
   const TableSkeleton = () => (
     <>
       {[...Array(5)].map((_, idx) => (
         <TableRow key={idx} className="animate-pulse">
-          <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-20" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-16" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-20" />
-          </TableCell>
-          <TableCell className="text-center">
-            <div className="flex justify-center gap-2">
-              <Skeleton className="h-6 w-6 rounded-full" />
-              <Skeleton className="h-6 w-6 rounded-full" />
-            </div>
-          </TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell className="text-center"><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
         </TableRow>
       ))}
     </>
@@ -165,50 +137,7 @@ export default function ExpensePage() {
       </div>
 
       {/* Insights Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp size={16} />
-              Total Expenses
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">Rs {totalExpenses.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {items.length} expense entries
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Inventory Costs
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">Rs {inventoryTotal.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {items.filter((i) => i.type === 'inventory').length} items
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Other Expenses
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">Rs {expenseTotal.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {items.filter((i) => i.type === 'expense').length} items
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <InsightsCards cards={cards} loading={loading} />
 
       {/* Table */}
       <Card>
@@ -228,21 +157,18 @@ export default function ExpensePage() {
                 <TableRow>
                   <TableHead>Item</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Unit Price</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center">Delete</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                <TableSkeleton />
-              </TableBody>
+              <TableBody><TableSkeleton /></TableBody>
             </Table>
           ) : items.length === 0 ? (
             <Empty className="py-16">
-              <EmptyMedia variant="icon">
-                <TrendingUp className="h-12 w-12" />
-              </EmptyMedia>
+              <EmptyMedia variant="icon"><TrendingUp className="h-12 w-12" /></EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>No Expenses</EmptyTitle>
                 <EmptyDescription>
@@ -260,45 +186,34 @@ export default function ExpensePage() {
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Unit Price</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item._id}>
+                {items.map(item => (
+                  <TableRow
+                    key={item._id}
+                    className="cursor-pointer hover:bg-muted/40 transition"
+                    onClick={() => {
+                      setSelectedItem(item)
+                      setOpenDrawer(true)
+                    }}
+                  >
                     <TableCell className="font-medium">{item.item}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          item.type === 'inventory' ? 'default' : 'secondary'
-                        }
-                      >
+                      <Badge className={item.type === 'expense' ? 'bg-destructive dark:text-white capitalize' : 'capitalize'}>
                         {item.type}
                       </Badge>
                     </TableCell>
                     <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">
-                      Rs {item.unitPrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      Rs {item.totalAmount.toFixed(2)}
-                    </TableCell>
+                    <TableCell className="text-right">Rs {item.unitPrice.toFixed(0)}</TableCell>
+                    <TableCell className="text-right font-medium">Rs {item.totalAmount.toFixed(0)}</TableCell>
                     <TableCell className="text-center">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setSelectedItem(item)
-                          setOpenDrawer(true)
-                        }}
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteItem(item)}
+                        onClick={e => { e.stopPropagation(); setDeleteItem(item) }}
                       >
                         <Trash2 size={16} className="text-destructive" />
                       </Button>
@@ -314,12 +229,12 @@ export default function ExpensePage() {
       {/* Form Drawer */}
       <ExpenseFormDrawer
         open={openDrawer}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setOpenDrawer(open)
           if (!open) setSelectedItem(null)
         }}
         item={selectedItem}
-        onSubmit={(data) =>
+        onSubmit={data =>
           selectedItem
             ? handleUpdate(selectedItem._id, data)
             : handleCreate(data)
@@ -332,19 +247,12 @@ export default function ExpensePage() {
           <DialogHeader>
             <DialogTitle>Delete Expense</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deleteItem?.item}"? This action
-              cannot be undone.
+              Are you sure you want to delete "{deleteItem?.item}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteItem(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isDeleteLoading}
-            >
+            <Button variant="outline" onClick={() => setDeleteItem(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleteLoading}>
               {isDeleteLoading ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>

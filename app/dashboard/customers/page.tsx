@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Users } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
+import { Plus, Edit, Trash2, Users } from 'lucide-react'
 import { RootState } from '@/redux/store/store'
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,8 +22,8 @@ import { CustomerFormDrawer } from '@/components/customer-form-drawer'
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbList,
   BreadcrumbLink,
+  BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -44,52 +42,67 @@ import {
   DialogHeader,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { InsightsCards } from '@/components/dashboard/insights-cards'
+import { InsightsCharts } from '@/components/dashboard/insights-charts'
 
-import { fetchAllCustomers, addCustomer, editCustomer, removeCustomer, } from '@/redux/slices/customer-slice'
+import {
+  fetchAllCustomers,
+  addCustomer,
+  editCustomer,
+  removeCustomer,
+} from '@/redux/slices/customer-slice'
 import type { Customer } from '@/lib/types'
 
 export default function CustomersPage() {
   const dispatch = useDispatch<any>()
   const router = useRouter()
   const { customers, loading } = useSelector((state: RootState) => state.customer)
+
+  // ---------------- State ----------------
   const [openDrawer, setOpenDrawer] = useState(false)
-  const [editCustomerData, setEditCustomerData] = useState<any>(null)
+  const [editCustomerData, setEditCustomerData] = useState<Customer | null>(null)
   const [deleteCustomerItem, setDeleteCustomerItem] = useState<Customer | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  // Calculate insights
+  // ---------------- Load Customers ----------------
+  useEffect(() => {
+    dispatch(fetchAllCustomers())
+  }, [dispatch])
+
+  // ---------------- Insights Calculations ----------------
   const totalCustomers = customers.length
   const totalBilled = customers.reduce((sum, c) => sum + (c.summary?.totalBilled || 0), 0)
   const totalPaid = customers.reduce((sum, c) => sum + (c.summary?.totalPaid || 0), 0)
   const totalOutstanding = customers.reduce((sum, c) => sum + (c.summary?.balance || 0), 0)
 
-  const customersWithPositiveBalance = customers.filter((c) => (c.summary?.balance || 0) > 0).length
-  const customersWithNegativeBalance = customers.filter((c) => (c.summary?.balance || 0) < 0).length
-  const customersWithZeroBalance = customers.filter((c) => (c.summary?.balance || 0) === 0).length
+  const positiveBalance = customers.filter((c) => (c.summary?.balance || 0) > 0).length
+  const zeroBalance = customers.filter((c) => (c.summary?.balance || 0) === 0).length
+  const negativeBalance = customers.filter((c) => (c.summary?.balance || 0) < 0).length
 
   const balanceDistributionData = [
-    { name: 'Positive', value: customersWithPositiveBalance, fill: '#dc2626' },
-    { name: 'Zero', value: customersWithZeroBalance, fill: '#6b7280' },
-    { name: 'Negative', value: customersWithNegativeBalance, fill: '#16a34a' },
-  ].filter((item) => item.value > 0)
+    { name: 'Positive', value: positiveBalance, fill: '#dc2626' },
+    { name: 'Zero', value: zeroBalance, fill: '#6b7280' },
+    { name: 'Negative', value: negativeBalance, fill: '#16a34a' },
+  ].filter((d) => d.value > 0)
 
-  useEffect(() => {
-    dispatch(fetchAllCustomers())
-  }, [dispatch])
+  // ---------------- Cards Setup ----------------
+  const allCards = [
+    { title: 'Total Billed', value: totalBilled, valuePrefix: 'Rs', icon: Users },
+    { title: 'Total Paid', value: totalPaid, valuePrefix: 'Rs', icon: Users },
+    { title: 'Outstanding', value: totalOutstanding, valuePrefix: 'Rs', icon: Users },
+  ]
 
-  // Navigate to customer details page
+  // ---------------- Handlers ----------------
   const handleRowClick = (customerId: string) => {
     router.push(`/dashboard/customers/${customerId}`)
   }
 
-  // Edit button click - prevent row click
   const handleEditClick = (e: React.MouseEvent, customer: Customer) => {
     e.stopPropagation()
     setEditCustomerData(customer)
     setOpenDrawer(true)
   }
 
-  // Delete button click - prevent row click
   const handleDeleteClick = (e: React.MouseEvent, customer: Customer) => {
     e.stopPropagation()
     setDeleteCustomerItem(customer)
@@ -110,6 +123,7 @@ export default function CustomersPage() {
       toast.error(err || 'Failed to save customer')
     }
   }
+
   const handleDelete = async () => {
     if (!deleteCustomerItem) return
     try {
@@ -137,7 +151,6 @@ export default function CustomersPage() {
           <TableCell className="text-center flex justify-center gap-2">
             <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-6 w-6 rounded-full" />
           </TableCell>
         </TableRow>
       ))}
@@ -163,83 +176,17 @@ export default function CustomersPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage your customers.</p>
       </div>
 
-      {/* Customer Insights Section */}
-      {!loading && customers.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Customer Insights</h2>
+      {/* ---------------- Insights Cards ---------------- */}
+      <InsightsCards cards={allCards} loading={loading} />
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">Total Customers</p>
-                  <p className="text-3xl font-bold">{totalCustomers}</p>
-                </div>
-              </CardContent>
-            </Card>
+      {/* ---------------- Balance Distribution Chart ---------------- */}
+      <InsightsCharts
+        pieCharts={[
+          { title: 'Customer Balance Distribution', data: balanceDistributionData, dataKey: 'value', nameKey: 'name' }
+        ]}
+      />
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">Total Billed</p>
-                  <p className="text-2xl font-bold">Rs {totalBilled.toFixed(0).toLocaleString()}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">Total Paid</p>
-                  <p className="text-2xl font-bold text-green-600">Rs {totalPaid.toFixed(0).toLocaleString()}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">Total Outstanding</p>
-                  <p className="text-2xl font-bold text-orange-600">Rs {totalOutstanding.toFixed(0).toLocaleString()}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Balance Distribution Chart */}
-          {balanceDistributionData.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Customer Balance Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={balanceDistributionData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {balanceDistributionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Table / Empty / Skeleton */}
+      {/* ---------------- Table ---------------- */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -269,9 +216,7 @@ export default function CustomersPage() {
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                <TableSkeleton />
-              </TableBody>
+              <TableBody><TableSkeleton /></TableBody>
             </Table>
           ) : customers.length === 0 ? (
             <Empty className="py-12 sm:py-20">
@@ -282,19 +227,14 @@ export default function CustomersPage() {
                 <EmptyTitle>No Customers Yet</EmptyTitle>
                 <EmptyDescription>
                   You haven’t added any customers yet.{' '}
-                  <a
-                    href="#"
-                    onClick={() => setOpenDrawer(true)}
-                    className="text-primary font-medium"
-                  >
+                  <a href="#" onClick={() => setOpenDrawer(true)} className="text-primary font-medium">
                     Add your first customer
-                  </a>
-                  .
+                  </a>.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
-            <Table className="min-w-150 sm:min-w-full">
+            <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -306,48 +246,43 @@ export default function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
-                  <TableRow
-                    key={customer._id}
-                    onClick={() => handleRowClick(customer._id)}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  >
-                    <TableCell className="truncate font-medium">{customer?.firstName} {customer?.lastName}</TableCell>
-                    <TableCell className="truncate">{customer?.phone}</TableCell>
-                    <TableCell className="text-right">Rs {customer?.summary?.totalBilled.toFixed(0).toLocaleString() ?? 0}</TableCell>
-                    <TableCell className="text-right text-green-600 font-semibold">Rs {customer?.summary?.totalPaid.toFixed(0).toLocaleString() ?? 0}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={(customer?.summary?.balance ?? 0) > 0 ? 'destructive' : 'secondary'}>
-                        Rs {customer.summary?.balance.toFixed(0).toLocaleString() ?? 0}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleEditClick(e, customer)}
-                        >
+                {customers.map((customer) => {
+                  const billed = customer.summary?.totalBilled || 0
+                  const paid = customer.summary?.totalPaid || 0
+                  const balance = customer.summary?.balance || 0
+                  return (
+                    <TableRow
+                      key={customer._id}
+                      onClick={() => handleRowClick(customer._id)}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <TableCell className="truncate font-medium">{customer.firstName} {customer.lastName}</TableCell>
+                      <TableCell className="truncate">{customer.phone}</TableCell>
+                      <TableCell className="text-right">Rs {billed.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-green-600 font-semibold">Rs {paid.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge className={balance > 0 ? 'bg-destructive text-white' : balance < 0 ? 'bg-secondary text-secondary-content' : 'bg-muted text-muted-foreground'}>
+                          Rs {balance.toLocaleString()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center flex justify-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={(e) => handleEditClick(e, customer)}>
                           <Edit size={16} />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleDeleteClick(e, customer)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={(e) => handleDeleteClick(e, customer)}>
                           <Trash2 size={16} className="text-destructive" />
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Drawer for Add/Edit */}
+      {/* Drawer */}
       <CustomerFormDrawer
         open={openDrawer}
         customer={editCustomerData ?? undefined}

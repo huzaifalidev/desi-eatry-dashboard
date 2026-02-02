@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Plus, Trash2, CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -71,6 +71,40 @@ export function BillEntryDrawer({
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentTranslate = useRef(0);
+
+  const normalizeItems = (items: any[]) =>
+    items.map((item) => ({
+      menuId: typeof item.menuId === "string" ? item.menuId : item.menuId?._id,
+      name: item.name,
+      size: item.size || "full",
+      unit: item.unit,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.total,
+    }));
+
+  const areItemsEqual = (a: any[], b: any[]) => {
+    if (a.length !== b.length) return false;
+    const sortKey = (item: any) =>
+      `${item.menuId}|${item.size}|${item.unit}|${item.quantity}|${item.price}|${item.total}|${item.name}`;
+    const sortedA = [...a].sort((x, y) => sortKey(x).localeCompare(sortKey(y)));
+    const sortedB = [...b].sort((x, y) => sortKey(x).localeCompare(sortKey(y)));
+
+    for (let i = 0; i < sortedA.length; i += 1) {
+      if (sortKey(sortedA[i]) !== sortKey(sortedB[i])) return false;
+    }
+    return true;
+  };
+
+  const originalItems = useMemo(
+    () => normalizeItems(selectedBill?.items || []),
+    [selectedBill]
+  );
+  const currentItems = useMemo(() => normalizeItems(billItems), [billItems]);
+  const hasItemChanges = useMemo(
+    () => !areItemsEqual(originalItems, currentItems),
+    [originalItems, currentItems]
+  );
 
   // Initialize form with selected bill data when drawer opens or selectedBill changes
   useEffect(() => {
@@ -173,6 +207,12 @@ export function BillEntryDrawer({
       };
 
       if (isEditMode && selectedBill) {
+        if (!hasItemChanges) {
+          toast.info("No changes in bill items");
+          onOpenChange(false);
+          return;
+        }
+
         // Update existing bill
         await dispatch(
           updateBill({
@@ -376,7 +416,10 @@ export function BillEntryDrawer({
               Cancel
             </Button>
 
-            <Button onClick={handleSaveBill} disabled={billItems.length === 0}>
+            <Button
+              onClick={handleSaveBill}
+              disabled={isEditMode ? !hasItemChanges : billItems.length === 0}
+            >
               {isLoading && <Spinner />} {isEditMode ? "Update Bill" : "Save Bill"}
             </Button>
           </div>

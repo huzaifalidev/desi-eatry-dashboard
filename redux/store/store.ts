@@ -6,6 +6,7 @@ import customerReducer from "@/redux/slices/customer-slice";
 import adminReducer from "@/redux/slices/admin-slice";
 import billReducer from "@/redux/slices/bill-slice";
 import expenseReducer from "@/redux/slices/expense-slice";
+import paymentReducer from "@/redux/slices/payment-slice";
 
 import {
   persistStore,
@@ -36,6 +37,7 @@ export const store = configureStore({
     customer: customerReducer, // 
     billing: billReducer,
     expense: expenseReducer,
+    payment: paymentReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

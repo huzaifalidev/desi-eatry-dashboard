@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -89,6 +89,37 @@ export function ExpenseFormDrawer({
     }
   }, [item, open])
 
+  const normalizeDate = (value?: Date | null) =>
+    value ? value.toISOString().split('T')[0] : ''
+
+  const hasChanges = useMemo(() => {
+    if (!item) return true
+    const original = {
+      type: item.type || 'expense',
+      item: item.item || '',
+      date: item.date ? item.date.split('T')[0] : '',
+      quantity: String(item.quantity ?? ''),
+      unitPrice: String(item.unitPrice ?? ''),
+      notes: item.notes || '',
+    }
+    const current = {
+      type,
+      item: itemName,
+      date: normalizeDate(date),
+      quantity,
+      unitPrice,
+      notes,
+    }
+    return (
+      original.type !== current.type ||
+      original.item !== current.item ||
+      original.date !== current.date ||
+      original.quantity !== current.quantity ||
+      original.unitPrice !== current.unitPrice ||
+      original.notes !== current.notes
+    )
+  }, [item, type, itemName, date, quantity, unitPrice, notes])
+
   // Touch drag handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     startY.current = e.touches[0].clientY
@@ -116,6 +147,10 @@ export function ExpenseFormDrawer({
     e.preventDefault()
     if (!itemName || !date || !quantity || !unitPrice) {
       toast.error('Please fill in all required fields')
+      return
+    }
+    if (item && !hasChanges) {
+      toast.info('No changes to update')
       return
     }
 
@@ -249,7 +284,7 @@ export function ExpenseFormDrawer({
           {quantity && unitPrice && (
             <div className="bg-muted p-3 rounded-lg border">
               <p className="text-sm text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold">Rs {totalAmount.toFixed(2)}</p>
+              <p className="text-2xl font-bold">Rs {totalAmount.toFixed(0)}</p>
             </div>
           )}
 
@@ -277,7 +312,14 @@ export function ExpenseFormDrawer({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !itemName || !date || !quantity || !unitPrice}
+              disabled={
+                isLoading ||
+                !itemName ||
+                !date ||
+                !quantity ||
+                !unitPrice ||
+                (item ? !hasChanges : false)
+              }
             >
               {isLoading ? (
                 <>
