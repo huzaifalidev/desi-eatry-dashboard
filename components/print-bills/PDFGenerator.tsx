@@ -65,7 +65,7 @@ function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number, margin: nu
     doc.setFont('helvetica', 'italic')
     doc.setFontSize(8)
     doc.setTextColor(...colors.medium)
-    doc.text('We appreciate your business', pageWidth / 2, y + 4, { align: 'center' })
+    doc.text('We appreciate your presence', pageWidth / 2, y + 4, { align: 'center' })
 }
 
 // ======================
