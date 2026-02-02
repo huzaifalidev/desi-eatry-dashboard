@@ -34,9 +34,11 @@ const getDateString = (date: Date) => {
 }
 
 // ======================
-// COLORS
+// COLORS (FIXED TYPE)
 // ======================
-const colors = {
+type RGB = [number, number, number]
+
+const colors: Record<string, RGB> = {
     primary: [220, 38, 38],
     secondary: [249, 115, 22],
     dark: [31, 41, 55],
@@ -69,12 +71,7 @@ function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number, margin: nu
 // ======================
 // WATERMARK
 // ======================
-function addWatermark(
-    doc: jsPDF,
-    imageBase64: string,
-    pageWidth: number,
-    pageHeight: number
-) {
+function addWatermark(doc: jsPDF, imageBase64: string, pageWidth: number, pageHeight: number) {
     const GState = (doc as any).GState
     if (!GState) return
 
@@ -86,7 +83,6 @@ function addWatermark(
     const y = (pageHeight - size) / 2
 
     doc.addImage(imageBase64, 'PNG', x, y, size, size)
-
     doc.setGState(new GState({ opacity: 1 }))
 }
 
@@ -107,41 +103,33 @@ export async function generateBillPDF({
     let yPosition = 15
 
     const logoBase64 = await toBase64('/logo.png')
+
     // ======================
-    // HEADER (FIXED)
+    // HEADER
     // ======================
     const HEADER_HEIGHT = 65
 
-    // Red header background
     doc.setFillColor(...colors.primary)
     doc.rect(0, 0, pageWidth, HEADER_HEIGHT, 'F')
 
-    // Orange strip
     doc.setFillColor(...colors.secondary)
     doc.rect(0, HEADER_HEIGHT - 5, pageWidth, 5, 'F')
 
-    // Logo (top-left, centered vertically)
     const logoSize = 40
     const logoY = (HEADER_HEIGHT - logoSize) / 2
     doc.addImage(logoBase64, 'PNG', margin, logoY, logoSize, logoSize)
 
-    // Brand name
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(24)
     doc.setTextColor(255, 255, 255)
     doc.text('Desi Eatry', pageWidth / 2, 30, { align: 'center' })
 
-    // Subtitle (clean, NOT on orange strip)
     doc.setFont('helvetica', 'italic')
     doc.setFontSize(9)
-    doc.text(
-        '"Delicious food delivered to your doorstep!"',
-        pageWidth / 2,
-        38,
-        { align: 'center' }
-    )
+    doc.text('"Delicious food delivered to your doorstep!"', pageWidth / 2, 38, {
+        align: 'center',
+    })
 
-    // Start content immediately after header
     yPosition = HEADER_HEIGHT + 5
 
     // ======================
@@ -188,11 +176,11 @@ export async function generateBillPDF({
             new Date(bill.date).toLocaleDateString(),
             bill.items?.length
                 ? bill.items
-                    .map(
-                        (i: any) =>
-                            `${i.name} (${i.size}, ${i.quantity} ${i.unit}) - Rs ${i.total}`
-                    )
-                    .join('\n')
+                      .map(
+                          (i: any) =>
+                              `${i.name} (${i.size}, ${i.quantity} ${i.unit}) - Rs ${i.total}`
+                      )
+                      .join('\n')
                 : 'No items',
             `Rs ${(bill.total || 0).toLocaleString()}`,
         ]),
