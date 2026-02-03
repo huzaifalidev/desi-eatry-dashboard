@@ -11,6 +11,8 @@ import {
   Trash2,
   MessageCircle,
   Printer,
+  CreditCard,
+  Wallet,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,7 @@ import { deletePayment } from "@/redux/slices/payment-slice";
 import type { Customer, Payment, Bill } from "@/lib/types";
 import type { AppDispatch, RootState } from "@/redux/store/store";
 import { fetchMenuItems } from "@/redux/slices/menu-slice";
+import { InsightsCards } from "@/components/dashboard/insights-cards";
 
 // ────────── Component ──────────
 interface SelectedItem {
@@ -269,47 +272,31 @@ export default function SingleCustomerPage() {
         </div>
 
       </div>
-      {/* Summary Card Table */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
-              Total Billed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">
-              Rs {customer?.summary?.totalBilled?.toLocaleString() ?? "0"}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
-              Total Paid
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-green-600">
-              Rs {customer?.summary?.totalPaid?.toLocaleString() ?? "0"}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
-              Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-destructive">
-              Rs {customer?.summary?.balance?.toLocaleString() ?? "0"}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <InsightsCards
+        cards={[
+          {
+            title: 'Total Billed',
+            value: customer?.summary?.totalBilled || 0,
+            valuePrefix: 'Rs ',
+            valueDecimals: 0,
+            icon: FileText,
+          },
+          {
+            title: 'Total Paid',
+            value: customer?.summary?.totalPaid || 0,
+            valuePrefix: 'Rs ',
+            valueDecimals: 0,
+            icon: CreditCard,
+          },
+          {
+            title: 'Balance',
+            value: customer?.summary?.balance || 0,
+            valuePrefix: 'Rs ',
+            valueDecimals: 0,
+            icon: Wallet,
+          },
+        ]}
+      />
       {/* ────────── Bills Table with Free-Text Search ────────── */}
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

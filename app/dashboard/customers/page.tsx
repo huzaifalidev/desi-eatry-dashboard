@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
-import { Plus, Edit, Trash2, Users } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, CreditCard, FileText, Wallet } from 'lucide-react'
 import { RootState } from '@/redux/store/store'
 
 import { Button } from '@/components/ui/button'
@@ -87,9 +87,24 @@ export default function CustomersPage() {
 
   // ---------------- Cards Setup ----------------
   const allCards = [
-    { title: 'Total Billed', value: totalBilled, valuePrefix: 'Rs', icon: Users },
-    { title: 'Total Paid', value: totalPaid, valuePrefix: 'Rs', icon: Users },
-    { title: 'Outstanding', value: totalOutstanding, valuePrefix: 'Rs', icon: Users },
+    {
+      title: 'Total Billed',
+      value: totalBilled,
+      valuePrefix: 'Rs ',
+      icon: FileText,      // represents invoices/bills
+    },
+    {
+      title: 'Total Paid',
+      value: totalPaid,
+      valuePrefix: 'Rs ',
+      icon: CreditCard,    // represents payments received
+    },
+    {
+      title: 'Outstanding',
+      value: totalOutstanding,
+      valuePrefix: 'Rs ',
+      icon: Wallet,        // represents remaining balance
+    },
   ]
 
   // ---------------- Handlers ----------------
