@@ -78,21 +78,19 @@ export function InsightsCharts({ barCharts = [], areaCharts = [], pieCharts = []
               <CardTitle className="text-sm">{chart.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={chart.data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chart.stroke || '#3b82f6'} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chart.stroke || '#3b82f6'} stopOpacity={0.1}/>
+                    <linearGradient id="colorSalesGreen" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#16a34a" stopOpacity={0.7} />
+                      <stop offset="40%" stopColor="#16a34a" stopOpacity={0.3} />
+                      <stop offset="80%" stopColor="#16a34a" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="#16a34a" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey={chart.xKey}
-                    stroke="#6b7280"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
+                  <XAxis dataKey={chart.xKey} stroke="#6b7280" style={{ fontSize: '12px' }} />
+                  <YAxis
                     stroke="#6b7280"
                     style={{ fontSize: '12px' }}
                     tickFormatter={(value) => `Rs ${(value / 1000).toFixed(0)}k`}
@@ -102,12 +100,13 @@ export function InsightsCharts({ barCharts = [], areaCharts = [], pieCharts = []
                   <Area
                     type="monotone"
                     dataKey={chart.dataKey}
-                    stroke={chart.stroke || '#3b82f6'}
+                    stroke="#16a34a"
                     fillOpacity={1}
-                    fill="url(#colorSales)"
+                    fill="url(#colorSalesGreen)"
                     name="Daily Sales"
                   />
                 </AreaChart>
+
               </ResponsiveContainer>
             </CardContent>
           </Card>

@@ -95,7 +95,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem>
-                    <BreadcrumbPage>{pageLabel}</BreadcrumbPage>
+                    <BreadcrumbPage className='text-xs text-muted-foreground'>{pageLabel}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>

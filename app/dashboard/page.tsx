@@ -5,27 +5,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { Plus, Users, TrendingUp, AlertCircle, Package, DollarSign, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BillEntryDrawer } from "@/components/bill-entry-drawer";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { InsightsCards } from "@/components/dashboard/insights-cards";
 import { InsightsCharts } from "@/components/dashboard/insights-charts";
 import { fetchMenuItems } from "@/redux/slices/menu-slice";
 import { fetchAllCustomers } from "@/redux/slices/customer-slice";
 import { fetchExpenses } from "@/redux/slices/expense-slice";
+import { fetchDailySales } from "@/redux/slices/bill-slice";
 import { RootState } from "@/redux/store/store";
 import type { AppDispatch } from "@/redux/store/store";
 import { fetchAllPayments } from "@/redux/slices/payment-slice";
@@ -33,17 +21,17 @@ import { fetchAllPayments } from "@/redux/slices/payment-slice";
 export default function DashboardPage() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
-  
-  // Get data from Redux
+
+  // ----------------- Redux State -----------------
   const { customers, loading: customersLoading } = useSelector((state: RootState) => state.customer);
   const { items: menuItems, loading: menuLoading } = useSelector((state: RootState) => state.menu);
   const { items: expenses, loading: expensesLoading } = useSelector((state: RootState) => state.expense);
+  const { dailySales, totals: salesTotals, loading: salesLoading } = useSelector((state: RootState) => state.billing);
 
-  const isLoading = customersLoading || menuLoading || expensesLoading;
+  const isLoading = customersLoading || menuLoading || expensesLoading || salesLoading;
 
-  // Calculate KPIs from Redux data
+  // ----------------- KPI Calculations -----------------
   const totalCustomers = customers.length;
-  
   const totalBilled = customers.reduce((sum, c) => sum + (c.summary?.totalBilled || 0), 0);
   const totalPaid = customers.reduce((sum, c) => sum + (c.summary?.totalPaid || 0), 0);
   const totalOutstanding = customers.reduce((sum, c) => sum + (c.summary?.balance || 0), 0);
@@ -73,25 +61,7 @@ export default function DashboardPage() {
     return acc;
   }, []);
 
-  // Calculate sales per day from bills
-  const salesPerDay = customers.reduce((acc: any[], customer) => {
-    (customer.bills || []).forEach((bill) => {
-      const billDate = bill.date ? new Date(bill.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Unknown';
-      const existing = acc.find((item) => item.date === billDate);
-      if (existing) {
-        existing.sales += bill.total || 0;
-      } else {
-        acc.push({ date: billDate, sales: bill.total || 0 });
-      }
-    });
-    return acc;
-  }, []).sort((a: any, b: any) => {
-    // Sort by date
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
-    return dateA - dateB;
-  }).slice(-30); // Last 30 days
-
+  // ----------------- Fetch Data -----------------
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -100,6 +70,7 @@ export default function DashboardPage() {
           dispatch(fetchAllCustomers()).unwrap(),
           dispatch(fetchExpenses()).unwrap(),
           dispatch(fetchAllPayments()).unwrap(),
+          dispatch(fetchDailySales({ days: 30 })).unwrap(), // ✅ fetch last 30 days sales
         ]);
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
@@ -112,10 +83,8 @@ export default function DashboardPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col justify-between gap-1">
-        <h1 className="text-3xl font-bold tracking-tight text-pretty">
-          Dashboard
-        </h1>
-        <div className="text-muted-foreground ">
+        <h1 className="text-3xl font-bold tracking-tight text-pretty">Dashboard</h1>
+        <div className="text-muted-foreground">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -125,50 +94,18 @@ export default function DashboardPage() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <p className="text-muted-foreground">
-          Here&apos;s a summary of your business.
-        </p>
+        <p className="text-muted-foreground">Here&apos;s a summary of your business.</p>
       </div>
 
-      {/* KPI Cards - Using InsightsCards Component */}
+      {/* KPI Cards */}
       <InsightsCards
         cards={[
-          {
-            title: 'Total Customers',
-            value: totalCustomers,
-            count: totalCustomers,
-            icon: Users,
-          },
-          {
-            title: 'Total Billed',
-            value: totalBilled,
-            valuePrefix: 'Rs ',
-            icon: DollarSign,
-          },
-          {
-            title: 'Total Paid',
-            value: totalPaid,
-            valuePrefix: 'Rs ',
-            icon: TrendingUp,
-          },
-          {
-            title: 'Outstanding',
-            value: totalOutstanding,
-            valuePrefix: 'Rs ',
-            icon: AlertCircle,
-          },
-          {
-            title: 'Menu Items',
-            value: menuItems.length,
-            count: menuItems.length,
-            icon: Package,
-          },
-          {
-            title: 'Total Expenses',
-            value: totalExpenses,
-            valuePrefix: 'Rs ',
-            icon: ShoppingCart,
-          },
+          { title: 'Total Customers', value: totalCustomers, count: totalCustomers, icon: Users },
+          { title: 'Total Billed', value: totalBilled, valuePrefix: 'Rs ', icon: DollarSign },
+          { title: 'Total Paid', value: totalPaid, valuePrefix: 'Rs ', icon: TrendingUp },
+          { title: 'Outstanding', value: totalOutstanding, valuePrefix: 'Rs ', icon: AlertCircle },
+          { title: 'Menu Items', value: menuItems.length, count: menuItems.length, icon: Package },
+          { title: 'Total Expenses', value: totalExpenses, valuePrefix: 'Rs ', icon: ShoppingCart },
         ]}
         loading={isLoading}
       />
@@ -178,7 +115,7 @@ export default function DashboardPage() {
         areaCharts={[
           {
             title: 'Sales Per Day (Last 30 Days)',
-            data: salesPerDay,
+            data: dailySales, // ✅ use dailySales from Redux
             dataKey: 'sales',
             xKey: 'date',
             stroke: '#3b82f6',
@@ -186,18 +123,8 @@ export default function DashboardPage() {
           },
         ]}
         pieCharts={[
-          {
-            title: 'Customer Balance Distribution',
-            data: balanceDistributionData,
-            dataKey: 'value',
-            nameKey: 'name',
-          },
-          ...(expenseByType.length > 0 ? [{
-            title: 'Expenses by Type',
-            data: expenseByType,
-            dataKey: 'value',
-            nameKey: 'name',
-          }] : []),
+          { title: 'Customer Balance Distribution', data: balanceDistributionData, dataKey: 'value', nameKey: 'name' },
+          ...(expenseByType.length > 0 ? [{ title: 'Expenses by Type', data: expenseByType, dataKey: 'value', nameKey: 'name' }] : []),
         ]}
       />
 
@@ -220,9 +147,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : customers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No customers yet. Create a customer to get started.
-            </div>
+            <div className="text-center py-8 text-muted-foreground">No customers yet. Create a customer to get started.</div>
           ) : (
             <div className="rounded-lg border overflow-hidden">
               <Table>
@@ -238,30 +163,16 @@ export default function DashboardPage() {
                 <TableBody>
                   {customers.slice(0, 5).map((customer) => (
                     <TableRow key={customer._id}>
-                      <TableCell className="font-medium">
-                        {customer.firstName} {customer.lastName}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        Rs {(customer.summary?.totalBilled || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right text-green-600">
-                        Rs {(customer.summary?.totalPaid || 0).toLocaleString()}
-                      </TableCell>
+                      <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
+                      <TableCell className="text-right">Rs {(customer.summary?.totalBilled || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-green-600">Rs {(customer.summary?.totalPaid || 0).toLocaleString()}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        <span
-                          className={
-                            (customer.summary?.balance || 0) > 0
-                              ? "text-destructive"
-                              : "text-green-600"
-                          }
-                        >
+                        <span className={(customer.summary?.balance || 0) > 0 ? "text-destructive" : "text-green-600"}>
                           Rs {(customer.summary?.balance || 0).toLocaleString()}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button size="sm" variant="outline">
-                          <Plus size={16} />
-                        </Button>
+                        <Button size="sm" variant="outline"><Plus size={16} /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -272,160 +183,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Customers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Customers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-12 bg-muted rounded animate-pulse" />
-                ))}
-              </div>
-            ) : customers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No customers yet
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {customers.slice(0, 3).map((customer) => (
-                  <div
-                    key={customer._id}
-                    className="flex items-center justify-between pb-2 border-b"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">
-                        {customer.firstName} {customer.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {customer.phone}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm">
-                        Rs {(customer.summary?.balance || 0).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(customer.summary?.balance || 0) > 0 ? 'Outstanding' : 'Settled'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Expenses */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-12 bg-muted rounded animate-pulse" />
-                ))}
-              </div>
-            ) : expenses.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No expenses recorded
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {expenses.slice(0, 3).map((expense) => (
-                  <div
-                    key={expense._id}
-                    className="flex items-center justify-between pb-2 border-b"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{expense.item}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {expense.type}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm">
-                        Rs {(expense.totalAmount || 0).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {expense.quantity} {expense.quantity === 1 ? 'unit' : 'units'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Customers Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Outstanding Balance:</span>
-              <span className="font-semibold">{positiveBalanceCount}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Settled:</span>
-              <span className="font-semibold">{zeroBalanceCount}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Credited:</span>
-              <span className="font-semibold">{negativeBalanceCount}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Payments Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Paid:</span>
-              <span className="font-semibold">Rs {totalPaid.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Pending Payment:</span>
-              <span className="font-semibold">Rs {totalOutstanding.toLocaleString()}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Expense Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Expenses:</span>
-              <span className="font-semibold">{expenseCount}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Amount:</span>
-              <span className="font-semibold">Rs {totalExpenses.toLocaleString()}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Bill Drawer */}
       <BillEntryDrawer
         open={openDrawer}
         onOpenChange={setOpenDrawer}
