@@ -67,7 +67,9 @@ export function BillEntryDrawer({
   const [billDate, setBillDate] = useState<Date | undefined>();
   const [billItems, setBillItems] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
-
+  const [isCustomItem, setIsCustomItem] = useState(false);
+  const [customItemName, setCustomItemName] = useState("");
+  const [customItemPrice, setCustomItemPrice] = useState("");
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentTranslate = useRef(0);
@@ -114,7 +116,7 @@ export function BillEntryDrawer({
       // Parse existing bill items
       const existingItems = (selectedBill.items || []).map((item: any) => ({
         id: item._id || Date.now().toString(),
-        menuId: typeof item.menuId === "string" ? item.menuId : item.menuId._id,
+        menuId: item.menuId?._id || undefined,
         name: item.name,
         size: item.size || "full",
         unit: item.unit,
@@ -213,7 +215,7 @@ export function BillEntryDrawer({
           return;
         }
 
-        // Update existing bill
+        // Update existing billf
         await dispatch(
           updateBill({
             billId: selectedBill._id,
@@ -295,31 +297,121 @@ export function BillEntryDrawer({
 
           {/* Menu, Size, Quantity, Add */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
+            {/* Menu / Custom Toggle */}
+            <div className="space-y-2 col-span-1 sm:col-span-2 md:col-span-1">
               <Label>Menu Item</Label>
-              <Select value={selectedMenuId} onValueChange={setSelectedMenuId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {menuItems.map((item) => (
-                    <SelectItem key={item._id} value={item._id}>
-                      {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 items-center">
+                <Select
+                  value={selectedMenuId}
+                  onValueChange={(v) => { setSelectedMenuId(v); setIsCustomItem(false); }}
+                  disabled={isCustomItem}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {menuItems.map((item) => (
+                      <SelectItem key={item._id} value={item._id}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant={isCustomItem ? "secondary" : "outline"}
+                  onClick={() => {
+                    setIsCustomItem((prev) => !prev);
+                    setSelectedMenuId("");
+                    setCustomItemName("");
+                    setCustomItemPrice("");
+                  }}
+                >
+                  {isCustomItem ? "Cancel" : "Custom"}
+                </Button>
+              </div>
             </div>
-            {/* this is condition */}
-            {(() => {
-              const menuItem = menuItems.find((m) => m._id === selectedMenuId);
-              if (!menuItem || menuItem.half === undefined) return null;
 
-              return (
-                menuItem.half && (
-                  <>
+            {/* Show custom fields */}
+            {isCustomItem && (
+              <>
+                <div className="space-y-2 col-span-1 sm:col-span-1 md:col-span-1">
+                  <Label>Item Name</Label>
+                  <Input
+                    value={customItemName}
+                    onChange={(e) => setCustomItemName(e.target.value)}
+                    placeholder="Enter item name"
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-1 sm:col-span-1 md:col-span-1">
+                  <Label>Price</Label>
+                  <Input
+                    type="text"
+                    value={customItemPrice}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\D/g, '');
+                      setCustomItemPrice(cleaned);
+                    }}
+                    placeholder="Enter price"
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-1 sm:col-span-1 md:col-span-4">
+                  <Label>Quantity</Label>
+                  <Input
+                    type="text"
+                    value={quantity}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\D/g, '');
+                      setQuantity(cleaned);
+                    }}
+                    placeholder="e.g., 1"
+                  />
+                </div>
+
+                <div className="col-span-1 sm:col-span-1 md:col-span-4 flex items-end">
+                  <Button
+                    onClick={() => {
+                      if (!customItemName) return toast.error("Enter item name");
+                      if (!customItemPrice) return toast.error("Enter item price");
+                      const qty = Math.max(1, parseInt(quantity) || 1);
+                      const price = parseInt(customItemPrice);
+                      setBillItems((prev) => [
+                        ...prev,
+                        {
+                          id: Date.now().toString(),
+                          menuId: undefined,
+                          name: customItemName,
+                          size: "full",
+                          unit: "unit",
+                          quantity: qty,
+                          price,
+                          total: price * qty,
+                        },
+                      ]);
+                      setCustomItemName("");
+                      setCustomItemPrice("");
+                      setQuantity("");
+                      setIsCustomItem(false);
+                    }}
+                    className="w-full"
+                  >
+                    <Plus size={16} className="mr-2" /> Add Custom Item
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Existing menu item + size + quantity layout */}
+            {!isCustomItem && (
+              <>
+                {/* Size selector if applicable */}
+                {(() => {
+                  const menuItem = menuItems.find((m) => m._id === selectedMenuId);
+                  if (!menuItem || menuItem.half === undefined) return null;
+                  return (
                     <div className="space-y-2">
-
                       <Label>Size</Label>
                       <Select
                         value={selectedSize}
@@ -334,33 +426,33 @@ export function BillEntryDrawer({
                         </SelectContent>
                       </Select>
                     </div>
-                  </>
-                )
-              );
-            })()}
+                  );
+                })()}
 
+                {/* Quantity */}
+                <div className="space-y-2">
+                  <Label>Quantity</Label>
+                  <Input
+                    type="text"
+                    value={quantity}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\D/g, '');
+                      setQuantity(cleaned);
+                    }}
+                    placeholder="e.g., 1"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Quantity</Label>
-              <Input
-                type="text" // Use text to allow typing freely on mobile
-                value={quantity}
-                onChange={(e) => {
-                  // Remove non-digit characters
-                  const cleaned = e.target.value.replace(/\D/g, '');
-                  setQuantity(cleaned);
-                }}
-                placeholder="e.g., 1"
-              />
-            </div>
-
-
-            <div className="space-y-2 flex items-end">
-              <Button onClick={handleAddItem} className="w-full">
-                <Plus size={16} className="mr-2" /> Add
-              </Button>
-            </div>
+                {/* Add Button */}
+                <div className="space-y-2 flex items-end">
+                  <Button onClick={handleAddItem} className="w-full">
+                    <Plus size={16} className="mr-2" /> Add
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
+
 
           {/* Bill Items Table */}
           {billItems.length > 0 && (
