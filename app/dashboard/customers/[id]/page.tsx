@@ -224,10 +224,92 @@ export default function SingleCustomerPage() {
         <ArrowLeft size={16} className="mr-2" />
         Back
       </Button>
-
       {/* Customer Header */}
-      {/* ... keep your header / summary cards as-is ... */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">
+            {customer.firstName} {customer.lastName}
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground truncate">
+            {customer.phone}
+          </p>
+          <p className="text-sm text-muted-foreground">{customer.address}</p>
+        </div>
 
+        <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setOpenPrintBills(true)}
+            disabled={!bills || bills.length === 0}
+          >
+            <Printer size={16} className="mr-2" /> Print Bills
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => {
+              setSelectedItem(null);
+              setOpenBillDrawer(true);
+            }}
+          >
+            <Plus size={16} className="mr-2" /> Add Bill
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setSelectedItem(null);
+              setOpenPaymentDrawer(true);
+            }}
+          >
+            <Plus size={16} className="mr-2" /> Add Payment
+          </Button>
+        </div>
+
+      </div>
+      {/* Summary Card Table */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Billed
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold">
+              Rs {customer?.summary?.totalBilled?.toLocaleString() ?? "0"}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              Total Paid
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
+              Rs {customer?.summary?.totalPaid?.toLocaleString() ?? "0"}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
+              Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold text-destructive">
+              Rs {customer?.summary?.balance?.toLocaleString() ?? "0"}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       {/* ────────── Bills Table with Free-Text Search ────────── */}
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -318,7 +400,6 @@ export default function SingleCustomerPage() {
           )}
         </CardContent>
       </Card>
-
       {/* Payments Table */}
       <Card>
         <CardHeader>
