@@ -56,6 +56,8 @@ import type { Customer, Payment, Bill } from "@/lib/types";
 import type { AppDispatch, RootState } from "@/redux/store/store";
 import { fetchMenuItems } from "@/redux/slices/menu-slice";
 import { InsightsCards } from "@/components/dashboard/insights-cards";
+import { BillingHistory } from "@/components/billing-history";
+import { PaymentHistory } from "@/components/payment-history";
 
 // ────────── Component ──────────
 interface SelectedItem {
@@ -297,178 +299,23 @@ export default function SingleCustomerPage() {
           },
         ]}
       />
-      {/* ────────── Bills Table with Free-Text Search ────────── */}
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2">
-            <FileText size={20} />
-            Billing History
-          </CardTitle>
+      <BillingHistory
+        bills={bills}
+        customer={customer}
+        billsLoading={billsLoading}
+        isDeleting={isDeleting}
+        onEditBill={handleEditBill}
+        onDeleteBill={(bill) => setDeleteItem({ ...bill, type: "bill" })}
+      />
 
-          {/* Free-Text Search */}
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by date, items, or total..."
-            className="sm:w-64"
-          />
-        </CardHeader>
-        <CardContent>
-          {billsLoading ? (
-            <div className="space-y-2">
-              {Array(3).fill(0).map((_, idx) => (
-                <Skeleton key={idx} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : !bills || bills.length === 0 ? (
-            <Empty className="mt-4">
-              <EmptyMedia variant="icon"><FileText size={32} /></EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>No bills found</EmptyTitle>
-                <EmptyDescription>You have not added any bills for {customer?.firstName} yet.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Delete</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBills.map((bill) => (
-                    <TableRow
-                      key={bill._id}
-                      onClick={() => handleEditBill(bill)}
-                      className="cursor-pointer hover:bg-muted/50"
-                    >
-                      <TableCell>{new Date(bill.date).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {bill.items && bill.items.length > 0
-                          ? bill.items.length === 1
-                            ? bill.items[0].name
-                            : <>
-                              {bill.items[0].name}
-                              <span className="text-muted-foreground"> +{bill.items.length - 1}</span>
-                            </>
-                          : "No items"}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">Rs {(bill.total || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteItem({ ...bill, type: "bill" });
-                          }}
-                          disabled={isDeleting}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredBills.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
-                        No bills match your search.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      {/* Payments Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageCircle size={20} />
-            Payment History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {paymentsLoading ? (
-            <div className="space-y-2">
-              {Array(3)
-                .fill(0)
-                .map((_, idx) => (
-                  <Skeleton key={idx} className="h-12 w-full" />
-                ))}
-            </div>
-          ) : !payments || payments.length === 0 ? (
-            <Empty className="mt-4">
-              <EmptyMedia variant="icon">
-                <MessageCircle size={32} />
-              </EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>No payments found</EmptyTitle>
-                <EmptyDescription>
-                  You have not recorded any payments for {customer.firstName}{" "}
-                  {customer.lastName} yet.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead className="text-right">Delete</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((payment: Payment) => (
-                    <TableRow
-                      key={payment._id}
-                      onClick={() => handleEditPayment(payment)}
-                      className="cursor-pointer hover:bg-muted/50"
-                    >
-                      <TableCell>
-                        {new Date(payment.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
-                        Rs {(payment.amount || 0).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm capitalize">
-                          {payment.method || "N/A"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteItem({ ...payment, type: "payment" });
-                          }}
-                          disabled={isDeleting}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
+      <PaymentHistory
+        payments={payments}
+        customer={customer}
+        loading={paymentsLoading}
+        isDeleting={isDeleting}
+        onEditPayment={handleEditPayment}
+        onDeletePayment={(payment) => setDeleteItem({ ...payment, type: "payment" })}
+      />
       {/* Drawers / Dialogs */}
       <BillEntryDrawer
         open={openBillDrawer}

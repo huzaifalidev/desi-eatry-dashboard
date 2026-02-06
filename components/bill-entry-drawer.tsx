@@ -59,7 +59,9 @@ export function BillEntryDrawer({
 }: BillEntryDrawerProps) {
   let menuItems = useSelector((state: RootState) => state.menu.items);
   menuItems = menuItems.filter((item) => item.status === "active");
+
   const dispatch = useDispatch<AppDispatch>();
+
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [selectedSize, setSelectedSize] = useState<"half" | "full">("full");
@@ -70,10 +72,12 @@ export function BillEntryDrawer({
   const [isCustomItem, setIsCustomItem] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customItemPrice, setCustomItemPrice] = useState("");
+
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
   const currentTranslate = useRef(0);
 
+  // ---------------- Utils ----------------
   const normalizeItems = (items: any[]) =>
     items.map((item) => ({
       menuId: typeof item.menuId === "string" ? item.menuId : item.menuId?._id,
@@ -103,17 +107,27 @@ export function BillEntryDrawer({
     [selectedBill]
   );
   const currentItems = useMemo(() => normalizeItems(billItems), [billItems]);
+
   const hasItemChanges = useMemo(
     () => !areItemsEqual(originalItems, currentItems),
     [originalItems, currentItems]
   );
 
-  // Initialize form with selected bill data when drawer opens or selectedBill changes
+  const hasDateChanged = useMemo(() => {
+    if (!selectedBill || !billDate) return false;
+    return new Date(selectedBill.date).toISOString() !== billDate.toISOString();
+  }, [selectedBill, billDate]);
+
+  const hasChanges = useMemo(() => hasItemChanges || hasDateChanged, [
+    hasItemChanges,
+    hasDateChanged,
+  ]);
+
+  // ---------------- Initialize Drawer ----------------
   useEffect(() => {
     if (open && selectedBill) {
       setIsEditMode(true);
       setBillDate(new Date(selectedBill.date));
-      // Parse existing bill items
       const existingItems = (selectedBill.items || []).map((item: any) => ({
         id: item._id || Date.now().toString(),
         menuId: item.menuId?._id || undefined,
@@ -155,12 +169,16 @@ export function BillEntryDrawer({
     currentTranslate.current = 0;
   };
 
+  // ---------------- Add Item ----------------
   const handleAddItem = () => {
     if (!selectedMenuId) return toast.error("Please select a menu item");
+
+    const qty = parseInt(quantity);
+    if (!qty || qty <= 0) return toast.error("Please enter a valid quantity");
+
     const menuItem = menuItems.find((m) => m._id === selectedMenuId);
     if (!menuItem) return;
 
-    const qty = Math.max(1, parseInt(quantity) || 1); // ensures at least 1
     const price = selectedSize === "half" ? menuItem.half : menuItem.full;
 
     setBillItems((prev) => [
@@ -176,19 +194,20 @@ export function BillEntryDrawer({
         total: price * qty,
       },
     ]);
+
     setSelectedMenuId("");
-    setQuantity(""); // reset input
+    setQuantity("");
     setSelectedSize("full");
   };
-
 
   const handleRemoveItem = (id: string) => {
     setBillItems((prev) => prev.filter((item) => item.id !== id));
     toast.success("Item removed");
   };
 
+  // ---------------- Save Bill ----------------
   const handleSaveBill = async () => {
-    if (!billDate) return toast.error("Please select a bill date")
+    if (!billDate) return toast.error("Please select a bill date");
     if (!billItems.length) return toast.error("Please add items");
 
     try {
@@ -209,13 +228,13 @@ export function BillEntryDrawer({
       };
 
       if (isEditMode && selectedBill) {
-        if (!hasItemChanges) {
-          toast.info("No changes in bill items");
+        if (!hasChanges) {
+          toast.info("No changes in the bill");
           onOpenChange(false);
           return;
         }
 
-        // Update existing billf
+        // Update existing bill
         await dispatch(
           updateBill({
             billId: selectedBill._id,
@@ -227,12 +246,8 @@ export function BillEntryDrawer({
         toast.success("Bill updated successfully");
       } else {
         // Create new bill
-        await dispatch(
-          createBill(billPayload)
-        ).unwrap();
-        toast.success(
-          `Bill for ${customerFirstName} ${customerLastName} saved`
-        );
+        await dispatch(createBill(billPayload)).unwrap();
+        toast.success(`Bill for ${customerFirstName} ${customerLastName} saved`);
       }
 
       await dispatch(fetchCustomerById(customerId));
@@ -245,6 +260,7 @@ export function BillEntryDrawer({
     }
   };
 
+  // ---------------- Render ----------------
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -281,7 +297,7 @@ export function BillEntryDrawer({
                   disabled={isLoading}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {billDate ? billDate.toLocaleDateString() : 'Pick a date'}
+                  {billDate ? billDate.toLocaleDateString() : "Pick a date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -295,15 +311,18 @@ export function BillEntryDrawer({
             </Popover>
           </div>
 
-          {/* Menu, Size, Quantity, Add */}
+          {/* Menu Items */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Menu / Custom Toggle */}
+            {/* Menu Select */}
             <div className="space-y-2 col-span-1 sm:col-span-2 md:col-span-1">
               <Label>Menu Item</Label>
               <div className="flex gap-2 items-center">
                 <Select
                   value={selectedMenuId}
-                  onValueChange={(v) => { setSelectedMenuId(v); setIsCustomItem(false); }}
+                  onValueChange={(v) => {
+                    setSelectedMenuId(v);
+                    setIsCustomItem(false);
+                  }}
                   disabled={isCustomItem}
                 >
                   <SelectTrigger>
@@ -332,7 +351,7 @@ export function BillEntryDrawer({
               </div>
             </div>
 
-            {/* Show custom fields */}
+            {/* Custom Item */}
             {isCustomItem && (
               <>
                 <div className="space-y-2 col-span-1 sm:col-span-1 md:col-span-1">
@@ -349,10 +368,9 @@ export function BillEntryDrawer({
                   <Input
                     type="text"
                     value={customItemPrice}
-                    onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\D/g, '');
-                      setCustomItemPrice(cleaned);
-                    }}
+                    onChange={(e) =>
+                      setCustomItemPrice(e.target.value.replace(/\D/g, ""))
+                    }
                     placeholder="Enter price"
                   />
                 </div>
@@ -362,10 +380,9 @@ export function BillEntryDrawer({
                   <Input
                     type="text"
                     value={quantity}
-                    onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\D/g, '');
-                      setQuantity(cleaned);
-                    }}
+                    onChange={(e) =>
+                      setQuantity(e.target.value.replace(/\D/g, ""))
+                    }
                     placeholder="e.g., 1"
                   />
                 </div>
@@ -374,8 +391,9 @@ export function BillEntryDrawer({
                   <Button
                     onClick={() => {
                       if (!customItemName) return toast.error("Enter item name");
-                      if (!customItemPrice) return toast.error("Enter item price");
-                      const qty = Math.max(1, parseInt(quantity) || 1);
+                      if (!customItemPrice)
+                        return toast.error("Enter item price");
+                      const qty = Math.max(1, parseInt(quantity));
                       const price = parseInt(customItemPrice);
                       setBillItems((prev) => [
                         ...prev,
@@ -403,10 +421,10 @@ export function BillEntryDrawer({
               </>
             )}
 
-            {/* Existing menu item + size + quantity layout */}
+            {/* Menu Item with quantity */}
             {!isCustomItem && (
               <>
-                {/* Size selector if applicable */}
+                {/* Size */}
                 {(() => {
                   const menuItem = menuItems.find((m) => m._id === selectedMenuId);
                   if (!menuItem || menuItem.half === undefined) return null;
@@ -415,7 +433,9 @@ export function BillEntryDrawer({
                       <Label>Size</Label>
                       <Select
                         value={selectedSize}
-                        onValueChange={(v) => setSelectedSize(v as "half" | "full")}
+                        onValueChange={(v) =>
+                          setSelectedSize(v as "half" | "full")
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select size" />
@@ -429,30 +449,30 @@ export function BillEntryDrawer({
                   );
                 })()}
 
-                {/* Quantity */}
                 <div className="space-y-2">
                   <Label>Quantity</Label>
                   <Input
                     type="text"
                     value={quantity}
-                    onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\D/g, '');
-                      setQuantity(cleaned);
-                    }}
+                    onChange={(e) =>
+                      setQuantity(e.target.value.replace(/\D/g, ""))
+                    }
                     placeholder="e.g., 1"
                   />
                 </div>
 
-                {/* Add Button */}
                 <div className="space-y-2 flex items-end">
-                  <Button onClick={handleAddItem} className="w-full">
+                  <Button
+                    onClick={handleAddItem}
+                    disabled={!selectedMenuId || !quantity || parseInt(quantity) <= 0}
+                    className="w-full"
+                  >
                     <Plus size={16} className="mr-2" /> Add
                   </Button>
                 </div>
               </>
             )}
           </div>
-
 
           {/* Bill Items Table */}
           {billItems.length > 0 && (
@@ -474,7 +494,9 @@ export function BillEntryDrawer({
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell className="capitalize">{item.size}</TableCell>
-                      <TableCell>{item.unit.charAt(0).toUpperCase() + item.unit.slice(1)}</TableCell>
+                      <TableCell>
+                        {item.unit.charAt(0).toUpperCase() + item.unit.slice(1)}
+                      </TableCell>
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell className="text-right">
                         Rs {item.total.toLocaleString()}
@@ -510,7 +532,7 @@ export function BillEntryDrawer({
 
             <Button
               onClick={handleSaveBill}
-              disabled={isEditMode ? !hasItemChanges : billItems.length === 0}
+              disabled={isEditMode ? !hasChanges : billItems.length === 0}
             >
               {isLoading && <Spinner />} {isEditMode ? "Update Bill" : "Save Bill"}
             </Button>
