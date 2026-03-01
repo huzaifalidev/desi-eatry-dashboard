@@ -26,8 +26,8 @@ export default function LoginPage() {
     (state: RootState) => state.admin
   )
 
-  const [email, setEmail] = useState('admin@demo.com')
-  const [password, setPassword] = useState('Admin123')
+  const [email, setEmail] = useState(null)
+  const [password, setPassword] = useState(null)
 
   /* ===========================
      BLOCK LOGIN PAGE IF AUTHED
