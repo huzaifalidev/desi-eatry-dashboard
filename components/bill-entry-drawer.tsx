@@ -477,43 +477,45 @@ export function BillEntryDrawer({
           {/* Bill Items Table */}
           {billItems.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {billItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="capitalize">{item.size}</TableCell>
-                      <TableCell>
-                        {item.unit.charAt(0).toUpperCase() + item.unit.slice(1)}
-                      </TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        Rs {item.total.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveItem(item.id)}
-                        >
-                          <Trash2 size={16} className="text-destructive" />
-                        </Button>
-                      </TableCell>
+              <div className="max-h-[40vh] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-center">Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+
+                  <TableBody>
+                    {billItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="capitalize">{item.size}</TableCell>
+                        <TableCell>
+                          {item.unit.charAt(0).toUpperCase() + item.unit.slice(1)}
+                        </TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          Rs {item.total.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveItem(item.id)}
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               <div className="bg-muted p-4 flex justify-between items-center">
                 <span className="font-semibold">Total Amount:</span>

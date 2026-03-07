@@ -55,6 +55,26 @@ export function BillingHistory({
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
+    const formatBillDate = (rawDate: Bill["date"]) => {
+        const date = new Date(rawDate);
+        const day = date.getDate();
+        const month = date.toLocaleString("en-US", { month: "short" });
+        const year = date.getFullYear();
+
+        const isTeen = day >= 11 && day <= 13;
+        const suffix = isTeen
+            ? "th"
+            : day % 10 === 1
+            ? "st"
+            : day % 10 === 2
+            ? "nd"
+            : day % 10 === 3
+            ? "rd"
+            : "th";
+
+        return `${day}${suffix}, ${month}, ${year}`;
+    };
+
     // Filter and sort bills
     useEffect(() => {
         const sorted = [...(bills || [])].sort(
@@ -145,7 +165,7 @@ export function BillingHistory({
                                             onClick={() => onEditBill(bill)}
                                             className="cursor-pointer hover:bg-muted/50"
                                         >
-                                            <TableCell>{new Date(bill.date).toLocaleDateString()}</TableCell>
+                                            <TableCell>{formatBillDate(bill.date)}</TableCell>
                                             <TableCell>
                                                 {bill.items && bill.items.length > 0
                                                     ? bill.items.length === 1
